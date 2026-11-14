@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
       userId = data.user.id;
     }
     await saveTokens(userId, tokens);
+    // A fresh login reopens Monzo's short full-history window, so backfill again from the start.
+    await admin.from("accounts").update({ backfilled: false, backfill_cursor: null, backfill_from: null }).eq("user_id", userId);
 
     const { data: link, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
     if (error) throw error;

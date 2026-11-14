@@ -15,6 +15,16 @@ export const cors = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
+export const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
+
+/** The signed-in Ledger user making this request, or null. */
+export async function userFrom(req: Request) {
+  const jwt = req.headers.get("authorization")?.replace(/^Bearer /i, "") ?? "";
+  const { data } = await admin.auth.getUser(jwt);
+  return data.user;
+}
+
 const b64 = (b: Uint8Array) => btoa(String.fromCharCode(...b));
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const key = () =>

@@ -43,12 +43,28 @@ export async function completeLogin(url: string) {
   if (otpError) throw new Error("Couldn't sign you in. Try again.");
 }
 
-export async function getStatus(): Promise<MonzoStatus> {
+async function call(name: string) {
   const { data } = await supabase.auth.getSession();
-  if (!data.session) return { connected: false };
-  const res = await fetch(fn("monzo-status"), {
+  if (!data.session) return null;
+  const res = await fetch(fn(name), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, apikey: SUPABASE_ANON_KEY },
   });
   return res.json();
+}
+
+export async function getStatus(): Promise<MonzoStatus> {
+  return (await call("monzo-status")) ?? { connected: false };
+}
+
+/** Pulls new transactions from Monzo, calling the server repeatedly until it has caught up. */
+export async function syncTransactions(onProgress?: (savedSoFar: number) => void) {
+  let total = 0;
+  for (;;) {
+    const r: { done?: boolean; saved?: number; error?: string } | null = await call("monzo-sync");
+    if (!r || r.error) throw new Error(r?.error ?? "Not signed in");
+    total += r.saved ?? 0;
+    onProgress?.(total);
+    if (r.done) return total;
+  }
 }
