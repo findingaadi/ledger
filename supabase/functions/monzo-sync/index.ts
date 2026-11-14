@@ -5,7 +5,8 @@ import { accessTokenFor, admin, cors, json, userFrom } from "../_shared/monzo.ts
 const PAGE = 100;
 const MAX_PAGES_PER_CALL = 15;
 const DAY = 86_400_000;
-const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+const WINDOW = 360 * DAY; // Monzo rejects ranges over one year (bad_request.invalid_time_range)
+const iso = (ms: number) => new Date(ms).toISOString();
 
 // deno-lint-ignore no-explicit-any
 type Tx = any;
@@ -22,35 +23,49 @@ Deno.serve(async (req) => {
 
     const accRes = await monzo("/accounts");
     if (!accRes.ok) return json({ error: `Monzo returned ${accRes.status}` }, 502);
-    const live = (await accRes.json()).accounts.filter((a: Tx) => !a.closed);
+    const live: Tx[] = (await accRes.json()).accounts.filter((a: Tx) => !a.closed);
     await admin.from("accounts").upsert(
-      live.map((a: Tx) => ({ id: a.id, user_id: user.id, type: a.type, name: a.owners?.[0]?.preferred_name ?? a.description })),
+      live.map((a) => ({ id: a.id, user_id: user.id, type: a.type, name: a.owners?.[0]?.preferred_name ?? a.description })),
     );
-    const { data: accounts } = await admin.from("accounts").select("*").eq("user_id", user.id)
-      .in("id", live.map((a: Tx) => a.id));
+    const { data: accounts } = await admin.from("accounts").select("*").eq("user_id", user.id).in("id", live.map((a) => a.id));
 
+    const now = Date.now();
     let pages = 0, saved = 0, done = true;
-    for (const acc of accounts ?? []) {
-      // First sync: walk forward from the beginning. Later syncs: re-read the last
-      // 30 days so settlements and category changes on recent transactions are picked up.
-      let since: string = acc.backfilled ? iso(30 * DAY) : acc.backfill_cursor ?? "2015-01-01T00:00:00Z";
-      let fullHistory: boolean = acc.backfilled || acc.backfill_cursor ? acc.full_history : true;
-      let fellBack = false;
-      let finished = false;
+    const skipped: string[] = [];
 
-      while (pages < MAX_PAGES_PER_CALL) {
-        const q = new URLSearchParams({ account_id: acc.id, limit: String(PAGE), since });
-        let res = await monzo(`/transactions?${q}&expand[]=merchant`);
-        if (res.status === 403 && !acc.backfilled && !fellBack) {
-          // More than five minutes since login: Monzo now only allows the last 90 days.
-          fellBack = true;
-          fullHistory = false;
-          since = iso(89 * DAY);
-          q.set("since", since);
-          res = await monzo(`/transactions?${q}&expand[]=merchant`);
+    accountLoop: for (const acc of accounts ?? []) {
+      // Later syncs re-read the last 30 days so settlements and category changes are picked up.
+      // The first sync walks forward from when the account was opened, one window at a time.
+      const opened = new Date(live.find((a) => a.id === acc.id)?.created ?? "2015-01-01T00:00:00Z").getTime();
+      let from = acc.backfilled ? now - 30 * DAY : acc.backfill_from ? new Date(acc.backfill_from).getTime() : opened;
+      let cursor: string | null = acc.backfilled ? null : acc.backfill_cursor;
+      let fullHistory: boolean = acc.backfilled || acc.backfill_from ? acc.full_history : true;
+
+      for (;;) {
+        if (pages >= MAX_PAGES_PER_CALL) {
+          done = false;
+          break accountLoop;
         }
-        if (!res.ok) throw new Error(`Monzo transactions returned ${res.status}`);
+        const to = Math.min(from + WINDOW, now);
+        const q = new URLSearchParams({ account_id: acc.id, limit: String(PAGE), since: cursor ?? iso(from) });
+        if (to < now) q.set("before", iso(to));
+        const res = await monzo(`/transactions?${q}&expand[]=merchant`);
         pages++;
+
+        if (res.status === 403 && !acc.backfilled && fullHistory) {
+          // More than five minutes since login: Monzo now only allows the last 90 days.
+          fullHistory = false;
+          from = now - 89 * DAY;
+          cursor = null;
+          continue;
+        }
+        if (!res.ok) {
+          // Don't let one account block the others.
+          console.error(`${acc.type}: skipped (${res.status}) ${await res.text()}`);
+          skipped.push(acc.type);
+          continue accountLoop;
+        }
+
         const txs: Tx[] = (await res.json()).transactions;
         if (txs.length) {
           const { error } = await admin.from("transactions").upsert(txs.map((t) => ({
@@ -69,27 +84,27 @@ Deno.serve(async (req) => {
           })));
           if (error) throw error;
           saved += txs.length;
-          since = txs[txs.length - 1].id;
-          if (!acc.backfilled) {
-            await admin.from("accounts").update({ backfill_cursor: since, full_history: fullHistory }).eq("id", acc.id);
-          }
         }
-        if (txs.length < PAGE) {
-          finished = true;
+
+        if (txs.length === PAGE) {
+          cursor = txs[txs.length - 1].id; // more in this window
+        } else if (to < now) {
+          from = to; // window finished, move to the next
+          cursor = null;
+        } else {
+          await admin.from("accounts")
+            .update({ backfilled: true, backfill_cursor: null, backfill_from: null, full_history: fullHistory, synced_at: iso(now) })
+            .eq("id", acc.id);
           break;
         }
-      }
-
-      if (finished) {
-        await admin.from("accounts")
-          .update({ backfilled: true, backfill_cursor: null, full_history: fullHistory, synced_at: new Date().toISOString() })
-          .eq("id", acc.id);
-      } else {
-        done = false;
-        break;
+        if (!acc.backfilled) {
+          await admin.from("accounts")
+            .update({ backfill_from: iso(from), backfill_cursor: cursor, full_history: fullHistory })
+            .eq("id", acc.id);
+        }
       }
     }
-    return json({ done, saved });
+    return json({ done, saved, skipped });
   } catch (e) {
     console.error(e);
     return json({ error: "Sync failed" }, 502);
