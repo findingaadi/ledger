@@ -2,6 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Transactions } from "@/components/transactions";
 import { getStatus, startLogin, type MonzoStatus } from "@/lib/monzo";
 import { supabase } from "@/lib/supabase";
 
@@ -69,11 +70,7 @@ export default function Index() {
     body = (
       <>
         <Text>Connected to Monzo</Text>
-        {status.accounts?.map((a) => (
-          <Text key={a.id} style={styles.account}>
-            {a.name} ({a.type})
-          </Text>
-        ))}
+        <Transactions />
       </>
     );
   }
@@ -92,10 +89,9 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
+  container: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24, paddingTop: 64 },
   title: { fontSize: 28, fontWeight: "bold" },
   center: { textAlign: "center" },
-  account: { fontSize: 18, fontWeight: "600" },
   button: { backgroundColor: "#14233c", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "600" },
   link: { color: "#185fa5", marginTop: 12 },

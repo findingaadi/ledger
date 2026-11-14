@@ -435,3 +435,6 @@ verify_jwt = false
 
 [functions.monzo-status]
 verify_jwt = false
+
+[functions.monzo-sync]
+verify_jwt = false

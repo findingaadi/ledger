@@ -1,13 +1,9 @@
 // Tells the signed-in app whether Monzo access has been approved, and lists accounts.
-import { accessTokenFor, admin, cors } from "../_shared/monzo.ts";
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
+import { accessTokenFor, cors, json, userFrom } from "../_shared/monzo.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
-  const jwt = req.headers.get("authorization")?.replace(/^Bearer /i, "") ?? "";
-  const { data: { user } } = await admin.auth.getUser(jwt);
+  const user = await userFrom(req);
   if (!user) return json({ error: "Not signed in" }, 401);
 
   try {
