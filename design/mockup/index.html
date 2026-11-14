@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger shelf mockup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2b2622;font-family:Georgia,'Times New Roman',serif;color:#3a2a17;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px;overflow-x:hidden}
+#scaler{transform-origin:top center}
+.device{width:400px;margin:0 auto;background:#111;border-radius:34px;padding:10px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+#phone{position:relative;width:380px;height:760px;border-radius:26px;overflow:hidden;background:#c48f4f;user-select:none}
+.bar{position:absolute;left:0;right:0;top:0;height:52px;z-index:5;display:flex;align-items:center;justify-content:center;
+ background:linear-gradient(#e9c58c,#c9995a 60%,#b98346);border-bottom:1px solid #7a4f22;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.bar h1{font-size:19px;font-weight:bold;color:#5a3610;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.wbtn{position:absolute;top:10px;height:32px;padding:0 12px;border-radius:6px;border:1px solid #7a4f22;font:bold 13px Georgia,serif;color:#5a3610;
+ background:linear-gradient(#e2b676,#bd8a4c);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(0,0,0,.3);cursor:pointer;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.wbtn:active{background:linear-gradient(#bd8a4c,#d3a465)}
+.wbtn.l{left:10px}.wbtn.r{right:10px}
+
+#shelf{position:absolute;inset:52px 0 0 0;
+ background:repeating-linear-gradient(90deg,rgba(90,50,10,.07) 0 1px,transparent 1px 7px,rgba(255,255,255,.05) 7px 9px,transparent 9px 23px),linear-gradient(#d6a565,#c48f4f)}
+.row{height:177px;position:relative;display:flex;align-items:flex-end;justify-content:space-around;padding:0 14px 18px;
+ background:linear-gradient(rgba(0,0,0,.3),transparent 34px)}
+.row::after{content:"";position:absolute;left:0;right:0;bottom:0;height:18px;
+ background:linear-gradient(#f0cf97 0 3px,#d9ab6b 3px,#b57d3d);box-shadow:0 7px 10px rgba(0,0,0,.4)}
+.slot{width:96px;height:150px;position:relative;z-index:1}
+
+.book{width:100%;height:100%;position:relative;border-radius:2px 5px 5px 2px;cursor:pointer;
+ background:linear-gradient(90deg,rgba(0,0,0,.35) 0 6px,rgba(255,255,255,.12) 6px 8px,rgba(0,0,0,.18) 8px 10px,transparent 10px),
+ linear-gradient(135deg,rgba(255,255,255,.14),transparent 45%,rgba(0,0,0,.2)),var(--c);
+ box-shadow:2px 0 0 #efe3c4,3px 0 0 #cbbd97,5px 3px 7px rgba(0,0,0,.5)}
+.book .frame{position:absolute;inset:8px 7px 8px 16px;border:1px solid rgba(232,198,106,.75);outline:1px solid rgba(232,198,106,.3);outline-offset:2px;
+ display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:14px 0 10px;color:#ecd084;text-shadow:0 1px 1px rgba(0,0,0,.6)}
+.book .mo{font-size:12px;font-weight:bold;letter-spacing:.3px}
+.book .orn{font-size:22px;opacity:.85}
+.book .yr{font-size:13px;letter-spacing:2px}
+.slot.glow .book{animation:glow 1.6s ease-in-out infinite}
+.slot.glow::after{content:"Payday";position:absolute;top:-6px;right:8px;z-index:2;background:linear-gradient(#ffe08a,#e3a92c);color:#5a3610;font:bold 10px Georgia,serif;
+ padding:9px 5px 7px;clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+@keyframes glow{0%,100%{box-shadow:2px 0 0 #efe3c4,3px 0 0 #cbbd97,0 0 6px 2px rgba(255,214,102,.55)}
+ 50%{box-shadow:2px 0 0 #efe3c4,3px 0 0 #cbbd97,0 0 22px 9px rgba(255,220,120,1)}}
+
+#fly{position:absolute;display:none;z-index:8;transform-origin:0 0;perspective:420px}
+#flyCover{position:absolute;inset:0;transform-origin:0 50%;transform-style:preserve-3d}
+#flyCover>*{position:absolute;inset:0;backface-visibility:hidden}
+#flyCover .end{transform:rotateY(180deg);background:#eadcb8;border-radius:5px 2px 2px 5px}
+
+#view{position:absolute;inset:0;display:none;z-index:6}
+#pages{position:absolute;inset:52px 0 0 0;perspective:1500px;background:#d9c9a0;touch-action:pan-y}
+.page{position:absolute;inset:0;transform-origin:0 50%;backface-visibility:hidden;transition:transform .75s cubic-bezier(.3,.1,.2,1);
+ padding:18px 20px 40px 26px;box-shadow:6px 0 20px rgba(0,0,0,.3);
+ background:linear-gradient(90deg,rgba(0,0,0,.16),transparent 14px),repeating-linear-gradient(transparent 0 35px,rgba(120,90,40,.13) 35px 36px),#f6ecd2}
+.page.turned{transform:rotateY(-180deg);pointer-events:none}
+.noanim .page{transition:none}
+.page h2{font-size:21px;text-align:center;color:#4a2c0c;font-variant:small-caps;letter-spacing:1px}
+.page .sub{text-align:center;font-size:12px;font-style:italic;color:#8a6c44;margin:2px 0 10px}
+.page .sub::before,.page .sub::after{content:" ~ "}
+.ln{display:flex;justify-content:space-between;align-items:center;height:36px;font-size:14.5px;border-bottom:1px solid rgba(120,90,40,.22)}
+.ln small{display:block;font-size:11px;font-style:italic;color:#8a6c44}
+.ln input{width:84px;height:26px;font:15px Georgia,serif;text-align:right;color:#23324f;background:rgba(255,255,255,.45);border:0;border-bottom:1px dashed #8a6c44;padding:0 4px}
+.ln input:disabled{background:none;border-bottom-color:transparent}
+.ink{color:#23324f}.red{color:#a12a22}.grn{color:#2f5d32}
+.stamp{margin:10px auto;padding:6px 10px;text-align:center;border:2px solid currentColor;border-radius:6px;width:200px;transform:rotate(-2deg);font-size:12px;letter-spacing:1px;text-transform:uppercase}
+.stamp b{display:block;font-size:24px;letter-spacing:0}
+.pbtn{display:block;width:100%;height:36px;margin-top:8px;border-radius:6px;border:1px solid #7a4f22;font:bold 14px Georgia,serif;color:#5a3610;cursor:pointer;
+ background:linear-gradient(#f3e3b8,#dcc48d);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.25)}
+.pbtn.go{background:linear-gradient(#7c2a22,#5c1a15);color:#f3dd9c;border-color:#3d0f0c}
+.err{font-size:12px;color:#a12a22;text-align:center;height:16px;margin-top:4px}
+.meter{flex:1;height:6px;margin:0 10px;border:1px solid #8a6c44;border-radius:3px;background:rgba(255,255,255,.4);overflow:hidden}
+.meter i{display:block;height:100%;background:#23324f}
+.meter i.o{background:#a12a22}
+.foot{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:space-between;padding:0 20px 0 26px;font-size:12px;font-style:italic;color:#8a6c44}
+.foot span{cursor:pointer}
+.tx{display:grid;grid-template-columns:44px 1fr auto;gap:6px;align-items:center;height:36px;font-size:13.5px;border-bottom:1px solid rgba(120,90,40,.22)}
+.tx small{font-size:11px;font-style:italic;color:#8a6c44;display:block}
+.tx .d{font-size:11px;color:#8a6c44}
+#demo{width:400px;margin:14px auto 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-family:system-ui,sans-serif}
+#demo button{background:#3b342e;color:#eadcb8;border:1px solid #6b5d4d;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+#demo p{width:100%;text-align:center;color:#a89a86;font-size:12px}
+</style>
+</head>
+<body>
+<div id="scaler">
+ <div class="device"><div id="phone">
+  <div class="bar"><h1>Ledgers</h1><button class="wbtn r">Settings</button></div>
+  <div id="shelf"></div>
+  <div id="view">
+   <div class="bar"><button class="wbtn l" id="back">Shelf</button><h1 id="vt"></h1></div>
+   <div id="pages"></div>
+  </div>
+  <div id="fly"><div id="flyCover"><div class="book"></div><div class="end"></div></div></div>
+ </div></div>
+ <div id="demo">
+  <button id="sim">Simulate salary landing</button>
+  <p>Tap a book to open it. Drag a page sideways, tap the page corners, or use the arrow keys to turn pages.</p>
+ </div>
+</div>
+<script>
+const $=s=>document.querySelector(s), gbp=n=>(n<0?'-':'')+'£'+Math.abs(n).toLocaleString('en-GB',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+const ENV=['Rent','Bills','Groceries','Transport','Eating out','Savings','Guilt-free'];
+const MON=['November','October','September','August','July','June'], COL=['#6b1f1f','#1f3a5f','#24452f','#7a5a16','#4a2545','#1f4f52'];
+const fresh=()=>({m:'November',y:2026,c:COL[0],glow:true,done:false,salary:2400,side:150,alloc:[950,320,300,120,160,400,0],spent:[0,0,23.4,5.6,0,0,0]});
+let books=[fresh()].concat(MON.slice(1).map((m,i)=>{const f=.82+.09*i;
+ return{m,y:2026,c:COL[i+1],glow:false,done:true,salary:2400,side:i%2?0:150,alloc:[950,320,300,120,160,400,i%2?150:300],
+  spent:[950,320,Math.round(281*f),Math.round(97*f),Math.round(150*f),400,Math.round(140*f)]}}));
+
+let scale=1;
+function fit(){scale=Math.min(1,(innerHeight-110)/780,(innerWidth-32)/400);$('#scaler').style.transform=`scale(${scale})`;$('#scaler').style.height=(860*scale)+'px'}
+addEventListener('resize',fit);fit();
+
+const cover=b=>`<div class="frame"><div class="mo">${b.m}</div><div class="orn">&#10087;</div><div class="yr">${b.y}</div></div>`;
+function drawShelf(){
+ let h='';
+ for(let r=0;r<4;r++){h+='<div class="row">';
+  for(let k=0;k<3;k++){const i=r*3+k,b=books[i];
+   h+=b?`<div class="slot${b.glow?' glow':''}" data-i="${i}"><div class="book" style="--c:${b.c}">${cover(b)}</div></div>`:'<div class="slot" style="visibility:hidden"></div>'}
+  h+='</div>'}
+ $('#shelf').innerHTML=h;
+ document.querySelectorAll('.slot[data-i]').forEach(s=>s.onclick=()=>openBook(+s.dataset.i,s));
+}
+drawShelf();
+
+let cur=0,book=null,slotEl=null,busy=false,pg=[];
+const fly=$('#fly'),fc=$('#flyCover'),view=$('#view'),pages=$('#pages');
+const EASE='cubic-bezier(.4,0,.2,1)';
+function place(el){const p=$('#phone').getBoundingClientRect(),r=el.getBoundingClientRect();
+ const x=(r.left-p.left)/scale,y=(r.top-p.top)/scale,w=r.width/scale,h=r.height/scale;
+ fly.style.cssText=`display:block;left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+ return`translate(${-x}px,${52-y}px) scale(${380/w},${708/h})`}
+async function openBook(i,el){
+ if(busy)return;busy=true;book=books[i];slotEl=el;
+ const fb=fc.firstElementChild;fb.style.setProperty('--c',book.c);fb.innerHTML=cover(book);
+ const T=place(el);el.style.visibility='hidden';
+ await fly.animate([{transform:'none'},{transform:T}],{duration:520,easing:EASE,fill:'forwards'}).finished;
+ $('#vt').textContent=book.m+' '+book.y;renderBook();go(book.glow?0:1,true);view.style.display='block';
+ await fc.animate([{transform:'rotateY(0)'},{transform:'rotateY(-165deg)'}],{duration:750,easing:EASE,fill:'forwards'}).finished;
+ fly.style.display='none';fly.getAnimations().concat(fc.getAnimations()).forEach(a=>a.cancel());busy=false;
+}
+async function closeBook(){
+ if(busy||!book)return;busy=true;
+ slotEl.style.visibility='';const T=place(slotEl);slotEl.style.visibility='hidden';
+ fly.style.transform=T;fc.style.transform='rotateY(-165deg)';
+ await fc.animate([{transform:'rotateY(-165deg)'},{transform:'rotateY(0)'}],{duration:600,easing:EASE,fill:'forwards'}).finished;
+ view.style.display='none';
+ await fly.animate([{transform:T},{transform:'none'}],{duration:450,easing:EASE,fill:'forwards'}).finished;
+ fly.getAnimations().concat(fc.getAnimations()).forEach(a=>a.cancel());
+ fly.style.display='none';fly.style.transform='';fc.style.transform='';
+ const i=books.indexOf(book);drawShelf();book=null;busy=false;
+}
+$('#back').onclick=closeBook;
+
+function go(i,instant){
+ cur=Math.max(0,Math.min(pg.length-1,i));
+ if(instant)pages.classList.add('noanim');
+ pg.forEach((p,k)=>p.classList.toggle('turned',k<cur));
+ if(instant){pages.offsetWidth;pages.classList.remove('noanim')}
+}
+const foot=k=>`<div class="foot"><span data-go="${k-1}">${k?'&lsaquo; back':''}</span><span>${k+1}</span><span data-go="${k+1}">${k<3?'turn &rsaquo;':''}</span></div>`;
+
+function paydayPage(){const b=book,lock=b.done;
+ return`<h2>Payday</h2><div class="sub">${lock?'every pound assigned':'salary has landed'}</div>
+ <div class="ln"><span>Salary</span><input type="number" id="salary" value="${b.salary}" ${lock?'disabled':''}></div>
+ <div class="ln"><span>Side income</span><input type="number" id="side" value="${b.side}" ${lock?'disabled':''}></div>
+ <div class="stamp" id="left"></div>
+ ${ENV.map((n,i)=>`<div class="ln"><span>${n}</span><input type="number" data-e="${i}" value="${b.alloc[i]}" ${lock?'disabled':''}></div>`).join('')}
+ ${lock?'':`<button class="pbtn" id="rest">Send the rest to guilt-free</button><button class="pbtn go" id="fin">Finish payday</button><div class="err" id="err"></div>`}`}
+function leftNow(){return book.salary+book.side-book.alloc.reduce((a,c)=>a+c,0)}
+function showLeft(){const l=leftNow(),e=$('#left');if(!e)return;
+ e.className='stamp '+(l===0?'grn':l<0?'red':'ink');e.innerHTML=(l<0?'Over-assigned':'Left to assign')+`<b>${gbp(Math.abs(l))}</b>`}
+
+function dashPage(){const b=book,over=[2,3,4].reduce((a,i)=>a+Math.max(0,b.spent[i]-b.alloc[i]),0),gf=b.alloc[6]-b.spent[6]-over;
+ const row=(i)=>{const a=b.alloc[i],s=b.spent[i],l=a-s,pc=a?Math.min(100,s/a*100):0;
+  const note=i===0?(s?'paid':'due 1st'):i===5?(s?'set aside':'to set aside'):l<0?`<span class="red">${gbp(-l)} over</span>`:gbp(l)+' left';
+  return`<div class="ln"><span style="width:86px">${ENV[i]}</span><div class="meter"><i class="${l<0?'o':''}" style="width:${pc}%"></i></div><span style="width:84px;text-align:right;font-size:13px">${note}</span></div>`};
+ const head=!b.done?`<div class="stamp red">Payday waiting<b>turn back</b></div>`:
+  `<div class="stamp ${gf<0?'red':'grn'}">Guilt-free ${b.glow||b===books[0]?'left':'unspent'}<b>${gbp(gf)}</b>of ${gbp(b.alloc[6])}</div>`;
+ return`<h2>${b.m}</h2><div class="sub">${b===books[0]?'cycle in progress, day 1':'cycle closed'}</div>${head}
+ ${[0,1,2,3,4,5].map(row).join('')}
+ <div class="ln"><span>Income this cycle</span><span class="ink">${gbp(b.salary+b.side)}</span></div>
+ <div class="ln"><span>Spent so far</span><span class="ink">${gbp(b.spent.reduce((a,c)=>a+c,0))}</span></div>`}
+
+function txPage(){const b=book,m=b.m.slice(0,3);
+ const rows=b===books[0]?[['13','Employer Ltd','Salary',b.salary],['13','Freelance client','Side income',b.side],['13','Tesco','Groceries',-23.4],['13','TfL','Transport',-5.6]]
+ :[['28','Employer Ltd','Salary',b.salary],['01','Landlord','Rent',-950],['01','Savings pot','Transfer, ignored',-400],['03','Octopus Energy','Bills',-74],['05','Tesco','Groceries',-61.2],['09','Dishoom','Eating out',-38],
+  ['12','TfL','Transport',-18.4],['15','Amazon','Needs an envelope',-19.99],['19','Sainsbury\'s','Groceries',-44.75],['22','Vue Cinema','Guilt-free',-24],['25','Pret','Eating out',-7.85]];
+ return`<h2>Transactions</h2><div class="sub">synced from Monzo</div>${rows.map(r=>`<div class="tx"><span class="d">${r[0]} ${m}</span><span>${r[1]}<small class="${r[2].startsWith('Needs')?'red':''}">${r[2]}</small></span><span class="${r[3]>0?'grn':'ink'}">${gbp(r[3])}</span></div>`).join('')}`}
+
+function billsPage(){const paid=book!==books[0];
+ const rows=[['Rent','1st',950],['Octopus Energy','3rd',74],['Council tax','5th',128],['Thames Water','8th',36],['EE mobile','14th',22],['Broadband','20th',32],['Netflix','21st',10.99]];
+ return`<h2>Bills</h2><div class="sub">direct debits this cycle</div>${rows.map(r=>`<div class="ln"><span>${r[0]}<small>${paid?'paid on the '+r[1]:'due on the '+r[1]}</small></span><span class="${paid?'grn':'ink'}">${paid?'&#10003; ':''}${gbp(r[2])}</span></div>`).join('')}
+ <div class="ln"><span><b>Total</b></span><span class="ink"><b>${gbp(rows.reduce((a,r)=>a+r[2],0))}</b></span></div>`}
+
+function renderBook(){
+ const f=[paydayPage,dashPage,txPage,billsPage];
+ pages.innerHTML=f.map((fn,k)=>`<div class="page" style="z-index:${9-k}">${fn()}${foot(k)}</div>`).join('');
+ pg=[...pages.children];showLeft();
+ pages.querySelectorAll('[data-go]').forEach(s=>s.onclick=()=>go(+s.dataset.go));
+ pages.querySelectorAll('input').forEach(inp=>inp.oninput=()=>{const v=Math.max(0,Math.round(+inp.value||0));
+  if(inp.id)book[inp.id]=v;else book.alloc[+inp.dataset.e]=v;showLeft();$('#err').textContent=''});
+ const rest=$('#rest'),fin=$('#fin');
+ if(rest)rest.onclick=()=>{const l=leftNow();if(l>0){book.alloc[6]+=l;pages.querySelector('[data-e="6"]').value=book.alloc[6];showLeft();$('#err').textContent=''}};
+ if(fin)fin.onclick=()=>{const l=leftNow();
+  if(l!==0){$('#err').textContent=l>0?`Assign the remaining ${gbp(l)} first.`:`You've assigned ${gbp(-l)} more than came in.`;return}
+  book.done=true;book.glow=false;renderBook();go(0,true);setTimeout(()=>go(1),60)};
+}
+
+let sx=null,dx=0,drag=null;
+pages.addEventListener('pointerdown',e=>{if(e.target.closest('input,button,[data-go]'))return;sx=e.clientX;dx=0;drag=null});
+addEventListener('pointermove',e=>{if(sx===null)return;dx=(e.clientX-sx)/scale;
+ if(!drag&&Math.abs(dx)>6){if(dx<0&&cur<pg.length-1)drag={el:pg[cur],base:0};else if(dx>0&&cur>0)drag={el:pg[cur-1],base:-180};
+  if(drag){drag.el.style.transition='none';drag.el.classList.remove('turned')}}
+ if(drag)drag.el.style.transform=`rotateY(${Math.max(-180,Math.min(0,drag.base+dx/380*180))}deg)`});
+addEventListener('pointerup',()=>{if(sx===null)return;sx=null;if(!drag)return;
+ const d=drag;drag=null;d.el.offsetWidth;d.el.style.transition='';d.el.style.transform='';
+ const commit=Math.abs(dx)>80;
+ if(d.base===0)go(commit?cur+1:cur);else go(commit?cur-1:cur)});
+addEventListener('keydown',e=>{if(!book||e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);if(e.key==='Escape')closeBook()});
+
+$('#sim').onclick=async()=>{if(book)await closeBook();books[0]=fresh();drawShelf()};
+</script>
+</body>
+</html>

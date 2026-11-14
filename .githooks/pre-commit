@@ -1,0 +1,11 @@
+#!/bin/sh
+# Refuses commits that contain env files or credential-looking strings.
+if git diff --cached --name-only --diff-filter=ACM | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+  echo "Commit blocked: env file staged (listed above). Keep secrets in .env, which is gitignored."
+  exit 1
+fi
+if git diff --cached -U0 -- . ':!.githooks' ':!package-lock.json' | grep -E '^\+' |
+   grep -nE 'mnzconf\.|mnzpub\.|sb_secret_|eyJ[A-Za-z0-9_-]{20,}\.eyJ|(client_secret|service_role|refresh_token|access_token)["'"'"' ]*[=:] *["'"'"']?[A-Za-z0-9._-]{20,}'; then
+  echo "Commit blocked: the lines above look like credentials. Move them to .env."
+  exit 1
+fi
