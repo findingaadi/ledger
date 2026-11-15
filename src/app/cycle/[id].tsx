@@ -131,7 +131,7 @@ export default function CyclePage() {
                 key={e.id}
                 style={styles.row}
                 onPress={() =>
-                  router.push({ pathname: "/envelope/[id]", params: { id: e.id, from: cycle.starts_at, to: cycle.ends_at ?? "" } })
+                  router.push({ pathname: "/envelope/[id]", params: { id: e.id, cycle: cycle.id, from: cycle.starts_at, to: cycle.ends_at ?? "" } })
                 }
               >
                 <View style={styles.grow}>
