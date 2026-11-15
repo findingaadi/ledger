@@ -4,7 +4,7 @@ const env = (id: string, name: string, kind: string, allocated: number, spent: n
 const ENVELOPES = [
   env("1", "Council tax", "bill", 16000, 16000), env("2", "Energy", "bill", 7700, 15800), env("3", "Gym and leisure", "bill", 2350, 0),
   env("4", "Groceries", "flexible", 30000, 20400), env("5", "Fuel and transport", "flexible", 12000, 4900),
-  env("6", "Eating out", "flexible", 16000, 17400), env("7", "Guilt-free", "guilt_free", 30000, 9800),
+  env("6", "Eating out", "flexible", 16000, 17400), env("7", "Fun money", "guilt_free", 30000, 9800),
 ];
 
 const noop = () => {};

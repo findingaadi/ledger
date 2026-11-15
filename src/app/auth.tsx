@@ -22,7 +22,7 @@ export default function AuthReturn() {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
       <Text>{error || "Signing you in…"}</Text>
-      {error ? <Text onPress={() => router.replace("/")} style={{ marginTop: 16, color: "#185fa5" }}>Back to Ledger</Text> : null}
+      {error ? <Text onPress={() => router.replace("/")} style={{ marginTop: 16, color: "#185fa5" }}>Back to Kharcha</Text> : null}
     </View>
   );
 }
