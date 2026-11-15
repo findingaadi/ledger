@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -70,6 +71,9 @@ export default function Index() {
     body = (
       <>
         <Text>Connected to Monzo</Text>
+        <Link href="/envelopes" style={styles.link}>
+          Envelopes
+        </Link>
         <Transactions />
       </>
     );
@@ -94,6 +98,6 @@ const styles = StyleSheet.create({
   center: { textAlign: "center" },
   button: { backgroundColor: "#14233c", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "600" },
-  link: { color: "#185fa5", marginTop: 12 },
+  link: { color: "#185fa5" },
   error: { color: "#a12a22", textAlign: "center" },
 });

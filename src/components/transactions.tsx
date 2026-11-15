@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { day, gbp } from "@/lib/format";
 import { syncTransactions } from "@/lib/monzo";
 import { supabase } from "@/lib/supabase";
 
@@ -10,13 +11,12 @@ type Row = {
   amount: number;
   description: string | null;
   merchant_name: string | null;
-  category: string | null;
   declined: boolean;
+  status: string;
+  envelopes: { name: string } | null;
 };
 
-const gbp = (pence: number) =>
-  (pence < 0 ? "-" : "+") + "£" + (Math.abs(pence) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 });
-const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const FILED: Record<string, string> = { neutral: "not counted", income: "income", unassigned: "needs an envelope" };
 
 /** Syncs from Monzo on first show, then lists the most recent transactions. */
 export function Transactions() {
@@ -29,8 +29,8 @@ export function Transactions() {
     try {
       await syncTransactions((n) => setBusy(`Syncing with Monzo… ${n} transactions`));
       const [list, count, oldest, accounts] = await Promise.all([
-        supabase.from("transactions").select("id,created,amount,description,merchant_name,category,declined")
-          .order("created", { ascending: false }).limit(50),
+        supabase.from("transactions").select("id,created,amount,description,merchant_name,declined,status,envelopes(name)")
+          .order("created", { ascending: false }).limit(50).overrideTypes<Row[]>(),
         supabase.from("transactions").select("id", { count: "exact", head: true }),
         supabase.from("transactions").select("created").order("created").limit(1),
         supabase.from("accounts").select("full_history"),
@@ -71,10 +71,13 @@ export function Transactions() {
             <View style={styles.grow}>
               <Text style={r.declined ? styles.struck : undefined}>{r.merchant_name ?? r.description}</Text>
               <Text style={styles.meta}>
-                {day(r.created)} · {r.declined ? "declined" : r.category}
+                {day(r.created)} ·{" "}
+                <Text style={r.status === "unassigned" ? styles.warn : undefined}>
+                  {r.declined ? "declined" : (r.envelopes?.name ?? FILED[r.status])}
+                </Text>
               </Text>
             </View>
-            <Text style={r.amount > 0 ? styles.credit : undefined}>{gbp(r.amount)}</Text>
+            <Text style={r.amount > 0 ? styles.credit : undefined}>{gbp(r.amount, true)}</Text>
           </View>
         )}
       />
@@ -92,4 +95,5 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: "#666" },
   struck: { textDecorationLine: "line-through", color: "#888" },
   credit: { color: "#2f5d32" },
+  warn: { color: "#a15c00" },
 });
