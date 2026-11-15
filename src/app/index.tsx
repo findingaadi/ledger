@@ -1,15 +1,18 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, View } from "react-native";
 
+import { Locker, type LockerPhase } from "@/components/locker";
 import { Shelf } from "@/components/shelf";
 import { getStatus, startLogin, type MonzoStatus } from "@/lib/monzo";
 import { supabase } from "@/lib/supabase";
 
+/** Home: the locked cabinet until Monzo access is approved, then the bookshelf behind it. */
 export default function Index() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [status, setStatus] = useState<MonzoStatus | null>(null);
   const [error, setError] = useState("");
+  const [lockerGone, setLockerGone] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -49,54 +52,29 @@ export default function Index() {
   };
   const signOut = () => {
     setStatus(null);
+    setLockerGone(false);
     supabase.auth.signOut();
   };
 
-  if (session && status?.approved) return <Shelf onSignOut={signOut} />;
-
-  let body;
-  if (session === undefined || (session && !status)) {
-    body = <ActivityIndicator />;
-  } else if (!session || status?.connected === false) {
-    body = (
-      <>
-        <Text>Monzo is not connected yet.</Text>
-        <Pressable style={styles.button} onPress={connect}>
-          <Text style={styles.buttonText}>Connect Monzo</Text>
-        </Pressable>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-      </>
-    );
-  } else if (status?.error) {
-    body = <Text style={styles.error}>{status.error}</Text>;
-  } else {
-    body = (
-      <>
-        <ActivityIndicator />
-        <Text style={styles.center}>Open your Monzo app and approve access for Ledger.</Text>
-      </>
-    );
-  }
+  const approved = Boolean(session && status?.approved);
+  let phase: LockerPhase;
+  if (approved) phase = "unlock";
+  else if (session === undefined || (session && !status)) phase = "intro";
+  else if (!session || status?.connected === false) phase = "login";
+  else phase = "waiting";
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Ledger</Text>
-      {body}
-      {session ? (
-        <Pressable onPress={signOut}>
-          <Text style={styles.link}>Sign out</Text>
-        </Pressable>
+    <View style={{ flex: 1, alignSelf: "stretch", backgroundColor: "#140b04" }}>
+      {approved ? <Shelf onSignOut={signOut} /> : null}
+      {!lockerGone ? (
+        <Locker
+          phase={phase}
+          error={error || status?.error}
+          onLogin={connect}
+          onSignOut={signOut}
+          onUnlocked={() => setLockerGone(true)}
+        />
       ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", gap: 12, padding: 24, paddingTop: 48 },
-  title: { fontSize: 28, fontWeight: "bold" },
-  center: { textAlign: "center" },
-  button: { backgroundColor: "#14233c", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  link: { color: "#185fa5" },
-  error: { color: "#a12a22", textAlign: "center" },
-});
