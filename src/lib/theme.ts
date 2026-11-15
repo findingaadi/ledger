@@ -18,3 +18,14 @@ export const gold = { leaf: "#dcc27e", glow: "rgba(255, 220, 120, 0.95)", ribbon
 
 /** Leather colours, reused in order along the shelf. */
 export const leathers = ["#6b1f1f", "#1f3a5f", "#24452f", "#7a5a16", "#4a2545", "#1f4f52"];
+
+/** Ledger paper and the inks written on it. */
+export const paper = {
+  bg: "#f6ecd2",
+  rule: "rgba(120, 90, 40, 0.28)",
+  text: "#3a2a17",
+  faint: "#8a6c44",
+  ink: "#23324f",
+  red: "#a12a22",
+  green: "#2f5d32",
+};

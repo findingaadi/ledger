@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { FilePicker, type EnvelopeOption } from "@/components/file-picker";
 import { day, gbp } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
+import { paper, serif } from "@/lib/theme";
 
 type Row = {
   id: string;
@@ -68,7 +69,7 @@ export function TransactionList({ envelopeId, status, from, to, reloadKey, onCha
       {rows?.map((r) => (
         <Pressable key={r.id} style={styles.row} onPress={() => setPicking(r)} disabled={r.declined}>
           <View style={styles.grow}>
-            <Text style={r.declined ? styles.struck : undefined}>{label(r)}</Text>
+            <Text style={[styles.name, r.declined && styles.struck]}>{label(r)}</Text>
             <Text style={styles.meta}>
               {day(r.created)} ·{" "}
               <Text style={r.status === "unassigned" ? styles.warn : undefined}>
@@ -76,7 +77,7 @@ export function TransactionList({ envelopeId, status, from, to, reloadKey, onCha
               </Text>
             </Text>
           </View>
-          <Text style={r.amount > 0 ? styles.credit : undefined}>{gbp(r.amount, true)}</Text>
+          <Text style={[styles.amount, r.amount > 0 && styles.credit]}>{gbp(r.amount, true)}</Text>
         </Pressable>
       ))}
       {picking ? (
@@ -99,11 +100,13 @@ export function TransactionList({ envelopeId, status, from, to, reloadKey, onCha
 
 const styles = StyleSheet.create({
   list: { alignSelf: "stretch" },
-  empty: { color: "#666", paddingVertical: 8 },
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: "#bbb" },
+  empty: { fontFamily: serif, fontStyle: "italic", color: paper.faint, paddingVertical: 8 },
+  row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 38, paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: paper.rule },
   grow: { flex: 1 },
-  meta: { fontSize: 12, color: "#666" },
-  struck: { textDecorationLine: "line-through", color: "#888" },
-  credit: { color: "#2f5d32" },
-  warn: { color: "#a15c00" },
+  name: { fontFamily: serif, fontSize: 15, color: paper.text },
+  meta: { fontFamily: serif, fontSize: 11.5, fontStyle: "italic", color: paper.faint },
+  amount: { fontFamily: serif, fontSize: 15, color: paper.ink },
+  struck: { textDecorationLine: "line-through", color: paper.faint },
+  credit: { color: paper.green },
+  warn: { color: paper.red },
 });
