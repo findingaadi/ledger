@@ -41,8 +41,21 @@ export async function startLogin() {
   if (result.type === "success") await completeLogin(result.url);
 }
 
-/** Turns the URL Monzo login returned to into a signed-in session. Safe to call twice. */
-export async function completeLogin(url: string) {
+let finishing: Promise<void> | null = null;
+
+/**
+ * Turns the URL Monzo login returned to into a signed-in session. On a phone the
+ * same return can arrive twice (through the login browser and as a deep link),
+ * so calls share one attempt and a repeat does nothing.
+ */
+export function completeLogin(url: string) {
+  finishing ??= finishLogin(url).finally(() => {
+    finishing = null;
+  });
+  return finishing;
+}
+
+async function finishLogin(url: string) {
   // The web app gets its values after "#"; the phone app gets them after "?", which survives a deep link.
   const params = new URLSearchParams(url.split("#")[1] ?? url.split("?")[1] ?? "");
   const expected = await AsyncStorage.getItem(NONCE_KEY);
