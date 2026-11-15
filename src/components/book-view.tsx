@@ -25,9 +25,7 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
       <Text style={styles.turn} onPress={() => go(index - 1)}>
         {index > 0 ? `‹ ${PAGES[index - 1]}` : ""}
       </Text>
-      <Text style={styles.shelfLink} onPress={onClose} accessibilityRole="button">
-        Back to shelf
-      </Text>
+      <Text style={styles.folio}>{index + 1}</Text>
       <Text style={[styles.turn, styles.turnRight]} onPress={() => go(index + 1)}>
         {index < last ? `${PAGES[index + 1]} ›` : ""}
       </Text>
@@ -51,8 +49,8 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
         );
       case 2:
         return (
-          <PaperPage title="Transactions" subtitle="synced from Monzo" footer={footer(2, go)}>
-            <TransactionList from={state.cycle.starts_at} to={state.cycle.ends_at} reloadKey={state.reloadKey} onChanged={state.changed} empty="Nothing in this cycle yet." />
+          <PaperPage title="Transactions" subtitle={`from payday, ${day(state.cycle.starts_at)}`} footer={footer(2, go)}>
+            <TransactionList ledger from={state.cycle.starts_at} to={state.cycle.ends_at} reloadKey={state.reloadKey} onChanged={state.changed} empty="Nothing in this cycle yet." />
           </PaperPage>
         );
       default:
@@ -66,7 +64,7 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
 
   return (
     <View style={styles.screen}>
-      <WoodBar title={state.cycle.name} left={<WoodButton label="‹ Shelf" onPress={onClose} />} />
+      <WoodBar title={state.cycle.name} left={<WoodButton label="Shelf" onPress={onClose} />} />
       <View style={[styles.book, { width: pageWidth }]}>
         <BookPages count={PAGES.length} first={first} width={pageWidth} names={PAGES} render={page} />
       </View>
@@ -77,6 +75,7 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
 function TodoPage({ state }: { state: CycleState }) {
   const { cycle, summary, left } = state;
   const [side, setSide] = useState<{ label: string; amount: string } | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const available = summary.income - summary.carried_in;
 
   return (
@@ -136,7 +135,30 @@ function TodoPage({ state }: { state: CycleState }) {
       })}
       <PaperButton label="Send the rest to guilt-free" onPress={state.sendRest} />
       <PaperButton label="Save" primary onPress={state.save} />
-      {state.message ? <Ink tone={state.message.startsWith("Saved") ? "green" : "red"} small>{state.message}</Ink> : null}
+      {state.message ? <Ink tone={/^(Saved|Reset)/.test(state.message) ? "green" : "red"} small>{state.message}</Ink> : null}
+
+      {confirmReset ? (
+        <View style={styles.confirm}>
+          <Ink tone="red">Reset {cycle.name.split(" ")[0]}&apos;s budget?</Ink>
+          <Ink small>
+            Every envelope goes back to £0 and all {gbp(available)} becomes unassigned, so you can share it out again. Your
+            transactions, side income and envelope defaults aren&apos;t changed.
+          </Ink>
+          <View style={styles.actions}>
+            <PaperButton
+              label="Yes, reset"
+              primary
+              onPress={async () => {
+                setConfirmReset(false);
+                await state.reset();
+              }}
+            />
+            <PaperLink label="Cancel" onPress={() => setConfirmReset(false)} />
+          </View>
+        </View>
+      ) : (
+        <PaperLink label="Reset this month's budget" onPress={() => setConfirmReset(true)} />
+      )}
 
       <Heading>Needs an envelope</Heading>
       <TransactionList status="unassigned" from={cycle.starts_at} to={cycle.ends_at} reloadKey={state.reloadKey} onChanged={state.changed} empty="Everything in this cycle is filed." />
@@ -216,9 +238,10 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: paper.rule },
   turn: { flex: 1, fontFamily: serif, fontSize: 13, fontStyle: "italic", color: paper.faint },
   turnRight: { textAlign: "right" },
-  shelfLink: { fontFamily: serif, fontSize: 13, fontWeight: "bold", color: paper.ink, textDecorationLine: "underline", paddingHorizontal: 8 },
+  folio: { fontFamily: serif, fontSize: 13, color: paper.faint },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   tick: { fontSize: 17, color: paper.ink },
+  confirm: { gap: 6, marginTop: 10, padding: 12, borderWidth: 1.5, borderColor: paper.red, borderRadius: 6, backgroundColor: "rgba(161,42,34,0.06)" },
   leftOut: { color: paper.faint, textDecorationLine: "line-through" },
   meter: { height: 5, width: 150, marginTop: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: paper.faint, borderRadius: 3, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.4)" },
   meterFill: { height: "100%" },

@@ -1,5 +1,5 @@
 import { Canvas, Fill, ImageShader, Shader, Skia, makeImageFromView, type SkImage } from "@shopify/react-native-skia";
-import { createRef, useMemo, useState, type ComponentRef } from "react";
+import { createRef, useCallback, useEffect, useMemo, useState, type ComponentRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Easing, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
@@ -68,28 +68,57 @@ half4 main(float2 p) {
 // The blank back of a page, a shade darker than its front.
 const BACK = [0.918, 0.875, 0.761, 1];
 
-type Curl = { index: number; image: SkImage };
 type ViewRef = ComponentRef<typeof View>;
 
 /** The book's pages on a phone: drag sideways and the page bends over like paper. */
 export function BookPages({ count, first, width, names, render }: BookPagesProps) {
   const [page, setPage] = useState(first);
   const [height, setHeight] = useState(0);
-  const [curl, setCurl] = useState<Curl | null>(null);
+  // Which page is being bent, and its photograph. While set, that page is drawn by the canvas.
+  const [curl, setCurl] = useState<{ index: number; image: SkImage } | null>(null);
   const refs = useMemo(() => Array.from({ length: count }, () => createRef<ViewRef>()), [count]);
+  // Photographs taken ahead of time, so a turn can start bending the moment a drag begins.
+  // A plain cache object kept for the component's lifetime; changing it shouldn't re-render.
+  const [shots] = useState(() => new Map<number, SkImage>());
   const last = count - 1;
+
+  // The drag runs on the UI thread, so it reads these rather than React state, which it would see stale.
+  const pageSV = useSharedValue(first);
+  const sizeSV = useSharedValue({ width, height: 0 });
+  useEffect(() => {
+    sizeSV.value = { width, height };
+  }, [width, height, sizeSV]);
 
   const progress = useSharedValue(0); // the bending page: 0 lying flat on the right, 1 turned over to the left
   const dir = useSharedValue(0);      // 1 turning forward, -1 turning back, 0 not turning
   const grabY = useSharedValue(0.5);  // where the page was taken hold of, as a fraction of its height
 
-  // Photograph the page about to bend, so the shader can draw it bent.
-  const snapshot = async (index: number) => {
+  const photograph = useCallback(async (index: number) => {
+    if (index < 0 || index > last) return null;
     const image = await makeImageFromView(refs[index] as never).catch(() => null);
-    if (image) setCurl({ index, image });
-    return Boolean(image);
+    if (image) shots.set(index, image);
+    return image;
+  }, [refs, last, shots]);
+
+  // After landing on a page, photograph it and the one before it, ready for the next turn either way.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      photograph(page);
+      photograph(page - 1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [page, height, photograph]);
+
+  // Start bending page `index`: straight away from the photograph taken earlier, then swap in a fresh one.
+  const begin = async (index: number) => {
+    const ready = shots.get(index);
+    if (ready) setCurl({ index, image: ready });
+    const fresh = await photograph(index);
+    if (fresh && dir.value !== 0) setCurl({ index, image: fresh });
+    return Boolean(ready || fresh);
   };
   const finish = (to: number) => {
+    pageSV.value = to;
     setPage(to);
     setCurl(null);
     dir.value = 0;
@@ -97,15 +126,16 @@ export function BookPages({ count, first, width, names, render }: BookPagesProps
 
   // Footer links turn one page with the same bend.
   const go = async (to: number) => {
+    const from = pageSV.value;
     const target = Math.max(0, Math.min(last, to));
-    if (target === page || dir.value !== 0) return;
-    const forward = target > page;
+    if (target === from || dir.value !== 0) return;
+    const forward = target > from;
     dir.value = forward ? 1 : -1;
     grabY.value = 0.75;
     progress.value = forward ? 0 : 1;
-    if (!(await snapshot(forward ? page : page - 1))) return finish(page);
+    if (!(await begin(forward ? from : from - 1))) return finish(from);
     progress.value = withTiming(forward ? 1 : 0, { duration: 850, easing: Easing.inOut(Easing.cubic) }, (done) => {
-      if (done) scheduleOnRN(finish, forward ? page + 1 : page - 1);
+      if (done) scheduleOnRN(finish, forward ? from + 1 : from - 1);
     });
   };
 
@@ -113,24 +143,27 @@ export function BookPages({ count, first, width, names, render }: BookPagesProps
     .activeOffsetX([-14, 14])
     .failOffsetY([-14, 14])
     .onStart((e) => {
+      const at = pageSV.value;
       const forward = e.translationX < 0;
-      if ((forward && page >= last) || (!forward && page <= 0) || dir.value !== 0) return;
+      if ((forward && at >= last) || (!forward && at <= 0) || dir.value !== 0) return;
       dir.value = forward ? 1 : -1;
-      grabY.value = height ? e.y / height : 0.5;
+      grabY.value = sizeSV.value.height ? e.y / sizeSV.value.height : 0.5;
       progress.value = forward ? 0 : 1;
-      scheduleOnRN(snapshot, forward ? page : page - 1);
+      scheduleOnRN(begin, forward ? at : at - 1);
     })
     .onUpdate((e) => {
       if (dir.value === 0) return;
-      const p = dir.value === 1 ? -e.translationX / width : 1 - e.translationX / width;
+      const w = sizeSV.value.width;
+      const p = dir.value === 1 ? -e.translationX / w : 1 - e.translationX / w;
       progress.value = Math.max(0, Math.min(1, p));
     })
     .onEnd((e) => {
       if (dir.value === 0) return;
+      const at = pageSV.value;
       const forward = dir.value === 1;
       const turn = forward ? progress.value > 0.3 || e.velocityX < -700 : progress.value < 0.7 || e.velocityX > 700;
       const target = forward === turn ? 1 : 0;
-      const landing = turn ? (forward ? page + 1 : page - 1) : page;
+      const landing = turn ? (forward ? at + 1 : at - 1) : at;
       progress.value = withTiming(target, { duration: 420, easing: Easing.out(Easing.cubic) }, (done) => {
         if (done) scheduleOnRN(finish, landing);
       });
@@ -138,12 +171,13 @@ export function BookPages({ count, first, width, names, render }: BookPagesProps
 
   const uniforms = useDerivedValue(() => {
     const t = progress.value;
+    const { width: w, height: h } = sizeSV.value;
     const bend = Math.sin(t * Math.PI);
-    const radius = width * (0.05 + 0.12 * bend);
+    const radius = w * (0.05 + 0.12 * bend);
     // Taking hold low on the page tips the fold one way, high the other, like lifting a corner.
     const angle = (grabY.value - 0.5) * 0.55 * bend;
-    const reach = width + radius + (height / 2) * Math.abs(Math.tan(angle)) + 4;
-    return { size: [width, height], fold: width - t * reach, angle, radius, progress: t, back: BACK };
+    const reach = w + radius + (h / 2) * Math.abs(Math.tan(angle)) + 4;
+    return { size: [w, h], fold: w - t * reach, angle, radius, progress: t, back: BACK };
   });
 
   // The page being bent is hidden (the canvas draws it); when turning forward the next page
