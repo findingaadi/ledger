@@ -42,22 +42,13 @@ def shade(value):
 def leather(size=256):
     rnd = random.Random(7)
     layers = [(noise(size, size, c, c, 10 + c), w) for c, w in ((44, 0.25), (88, 0.45), (128, 0.30))]
-    patches = noise(size, size, 5, 5, 99)       # broad areas rubbed pale with handling
-    # A few fine scratches: each is a short straight line that lightens what it crosses.
-    scratched = {}
-    for _ in range(26):
-        x, y, angle, length = rnd.random() * size, rnd.random() * size, rnd.random() * math.pi, 14 + rnd.random() * 46
-        for step in range(int(length)):
-            px, py = int(x + math.cos(angle) * step) % size, int(y + math.sin(angle) * step) % size
-            scratched[(px, py)] = 0.10 + rnd.random() * 0.10
     rows = []
     for y in range(size):
         row = []
         for x in range(size):
             n = sum(layer(x, y) * weight for layer, weight in layers)   # pebbled grain
             pores = (rnd.random() - 0.5) * 0.08                         # fine speckle
-            worn = max(0.0, patches(x, y) - 0.5) * 0.55
-            row.append(shade((n - 0.5) * 1.1 + pores - 0.06 + worn + scratched.get((x, y), 0)))
+            row.append(shade((n - 0.5) * 0.9 + pores - 0.05))
         rows.append(row)
     return rows
 

@@ -14,7 +14,7 @@ export const wood = {
   ink: "#f1dfb4",
 };
 
-export const gold = { leaf: "#dcc27e", glow: "rgba(255, 220, 120, 0.95)", ribbon: ["#ffe08a", "#e3a92c"] as const };
+export const gold = { leaf: "#ecd084", glow: "rgba(255, 220, 120, 0.95)", ribbon: ["#ffe08a", "#e3a92c"] as const };
 
 /** Leather colours, reused in order along the shelf. */
 export const leathers = ["#6b1f1f", "#1f3a5f", "#24452f", "#7a5a16", "#4a2545", "#1f4f52"];
