@@ -67,7 +67,7 @@ It runs on Android, iOS and the web from one codebase. It is built for one perso
 
 Kharcha isn't on the Play Store. You install it from an APK file.
 
-1. On your phone, open the [Releases page](https://github.com/findingaadi/ledger/releases) and download the newest `ledger.apk`. The repository is private, so you need to be signed in to GitHub with access to it.
+1. On your phone, open the [Releases page](https://github.com/findingaadi/ledger/releases) and download the newest `kharcha.apk`. The repository is private, so you need to be signed in to GitHub with access to it.
 2. Open the downloaded file. Android will say your browser isn't allowed to install apps: tap **Settings**, turn on **Allow from this source**, and go back.
 3. Tap **Install**. If Play Protect asks, choose **Install anyway**; it asks because the app didn't come from the Play Store.
 4. Open Kharcha, tap **Login to Monzo**, enter your Monzo email, and tap the link Monzo emails you.
