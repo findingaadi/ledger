@@ -1,4 +1,5 @@
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
+import { Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { paper, serif, wood } from "@/lib/theme";
@@ -12,6 +13,12 @@ export default function RootLayout() {
         headerTintColor: wood.ink,
         headerTitleStyle: { fontFamily: serif, fontWeight: "bold" },
         contentStyle: { backgroundColor: paper.bg },
+        // Every screen opened on top of the shelf has a way straight back to it.
+        headerRight: () => (
+          <Text onPress={() => (router.canDismiss() ? router.dismissAll() : router.replace("/"))} style={{ fontFamily: serif, fontWeight: "bold", color: wood.ink, paddingHorizontal: 8 }}>
+            Shelf
+          </Text>
+        ),
       }}
     >
       <Stack.Screen name="index" options={{ title: "Ledger", headerShown: false }} />
