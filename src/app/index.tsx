@@ -2,7 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Home } from "@/components/home";
+import { Shelf } from "@/components/shelf";
 import { getStatus, startLogin, type MonzoStatus } from "@/lib/monzo";
 import { supabase } from "@/lib/supabase";
 
@@ -52,6 +52,8 @@ export default function Index() {
     supabase.auth.signOut();
   };
 
+  if (session && status?.approved) return <Shelf onSignOut={signOut} />;
+
   let body;
   if (session === undefined || (session && !status)) {
     body = <ActivityIndicator />;
@@ -67,18 +69,11 @@ export default function Index() {
     );
   } else if (status?.error) {
     body = <Text style={styles.error}>{status.error}</Text>;
-  } else if (!status?.approved) {
+  } else {
     body = (
       <>
         <ActivityIndicator />
         <Text style={styles.center}>Open your Monzo app and approve access for Ledger.</Text>
-      </>
-    );
-  } else {
-    body = (
-      <>
-        <Text>Connected to Monzo</Text>
-        <Home />
       </>
     );
   }
