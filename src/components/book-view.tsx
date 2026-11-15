@@ -1,6 +1,10 @@
 import { router } from "expo-router";
-import { useRef, useState, type ComponentRef } from "react";
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useState, type ReactNode } from "react";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { Heading, Ink, Line, PaperButton, PaperInput, PaperLink, PaperPage, Stamp } from "@/components/paper";
 import { TransactionList } from "@/components/transaction-list";
@@ -11,19 +15,52 @@ import type { CycleState } from "@/lib/use-cycle";
 
 const PAGES = ["To do", "Dashboard", "Transactions", "Bills"];
 
-/** An open book: one pay cycle as four ledger pages you swipe between. */
+/** An open book: one pay cycle as four ledger pages that turn like paper. */
 export function BookView({ state, onClose }: { state: CycleState; onClose: () => void }) {
   const { width } = useWindowDimensions();
   const pageWidth = Math.min(width, 520);
-  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   // Open on the to-do page when there is something to do, otherwise on the dashboard.
   const [first] = useState(() => (state.summary.left_to_assign !== 0 || state.summary.unfiled > 0 ? 0 : 1));
   const [page, setPage] = useState(first);
-  const [pageHeight, setPageHeight] = useState<number | undefined>(undefined);
-  const pageSize = { width: pageWidth, height: pageHeight };
+  // How far through the book we are: 1 is page two lying flat, 1.4 is page two 40% of the way over.
+  const position = useSharedValue(first);
+  const dragFrom = useSharedValue(first);
+  const last = PAGES.length - 1;
 
-  const go = (to: number) => scroller.current?.scrollTo({ x: Math.max(0, Math.min(PAGES.length - 1, to)) * pageWidth, animated: true });
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.round(e.nativeEvent.contentOffset.x / pageWidth));
+  // A row under the finger would otherwise treat the end of a drag as a tap. While a page is
+  // being dragged, and for a moment after, the pages' contents ignore touches.
+  const [turning, setTurning] = useState(false);
+  const endTurning = () => setTimeout(() => setTurning(false), 300);
+
+  const go = (to: number) => {
+    const target = Math.max(0, Math.min(last, to));
+    position.value = withTiming(target, { duration: 750, easing: Easing.inOut(Easing.cubic) });
+    setPage(target);
+  };
+
+  // Drag sideways to turn a page; the page follows the finger and settles either way on release.
+  // Mostly-vertical movement is left alone so the page can still scroll.
+  const drag = Gesture.Pan()
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-14, 14])
+    .onStart(() => {
+      dragFrom.value = Math.round(position.value);
+      scheduleOnRN(setTurning, true);
+    })
+    .onUpdate((e) => {
+      const next = dragFrom.value - e.translationX / pageWidth;
+      position.value = Math.max(Math.max(0, dragFrom.value - 1), Math.min(Math.min(last, dragFrom.value + 1), next));
+    })
+    .onEnd((e) => {
+      const moved = position.value - dragFrom.value;
+      const turn = Math.abs(moved) > 0.3 || Math.abs(e.velocityX) > 700;
+      const target = turn && moved !== 0 ? dragFrom.value + Math.sign(moved) : dragFrom.value;
+      position.value = withTiming(target, { duration: 380, easing: Easing.out(Easing.cubic) });
+      scheduleOnRN(setPage, target);
+    })
+    .onFinalize(() => {
+      scheduleOnRN(endTurning);
+    });
 
   const footer = (index: number) => (
     <View style={styles.footer}>
@@ -32,52 +69,85 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
       </Text>
       <Text style={styles.folio}>{index + 1}</Text>
       <Text style={[styles.turn, styles.turnRight]} onPress={() => go(index + 1)}>
-        {index < PAGES.length - 1 ? `${PAGES[index + 1]} ›` : ""}
+        {index < last ? `${PAGES[index + 1]} ›` : ""}
       </Text>
     </View>
   );
   const dates = `${day(state.cycle.starts_at)} to ${state.cycle.ends_at ? day(state.cycle.ends_at) : "next payday"}`;
 
+  const pages = [
+    <PaperPage key="todo" title="To do" subtitle={dates} footer={footer(0)}>
+      <TodoPage state={state} />
+    </PaperPage>,
+    <PaperPage key="dash" title={state.cycle.name.split(" ")[0]} subtitle={state.summary.closed ? "cycle closed" : "cycle in progress"} footer={footer(1)}>
+      <DashboardPage state={state} />
+    </PaperPage>,
+    <PaperPage key="tx" title="Transactions" subtitle="synced from Monzo" footer={footer(2)}>
+      <TransactionList from={state.cycle.starts_at} to={state.cycle.ends_at} reloadKey={state.reloadKey} onChanged={state.changed} empty="Nothing in this cycle yet." />
+    </PaperPage>,
+    <PaperPage key="bills" title="Bills" subtitle="regular payments this cycle" footer={footer(3)}>
+      <BillsPage state={state} />
+    </PaperPage>,
+  ];
+
   return (
     <View style={styles.screen}>
       <WoodBar title={state.cycle.name} left={<WoodButton label="Shelf" onPress={onClose} />} />
-      <ScrollView
-        ref={scroller}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        style={[styles.book, { width: pageWidth }]}
-        onLayout={(e) => {
-          // Pages are given the measured height so each one scrolls inside itself with its footer in view.
-          setPageHeight(e.nativeEvent.layout.height);
-          scroller.current?.scrollTo({ x: first * pageWidth, animated: false });
-        }}
-        onScroll={onScroll}
-        scrollEventThrottle={64}
-        accessibilityLabel={`Page ${page + 1} of ${PAGES.length}: ${PAGES[page]}`}
-      >
-        <View style={pageSize}>
-          <PaperPage title="To do" subtitle={dates} footer={footer(0)}>
-            <TodoPage state={state} />
-          </PaperPage>
+      <GestureDetector gesture={drag}>
+        <View style={[styles.book, { width: pageWidth }]} accessibilityLabel={`Page ${page + 1} of ${PAGES.length}: ${PAGES[page]}`}>
+          <View style={styles.face} pointerEvents={turning ? "none" : "box-none"}>
+            {pages.map((content, index) => (
+              <TurningPage key={index} index={index} count={PAGES.length} position={position}>
+                {content}
+              </TurningPage>
+            ))}
+          </View>
         </View>
-        <View style={pageSize}>
-          <PaperPage title={state.cycle.name.split(" ")[0]} subtitle={state.summary.closed ? "cycle closed" : "cycle in progress"} footer={footer(1)}>
-            <DashboardPage state={state} />
-          </PaperPage>
-        </View>
-        <View style={pageSize}>
-          <PaperPage title="Transactions" subtitle="synced from Monzo" footer={footer(2)}>
-            <TransactionList from={state.cycle.starts_at} to={state.cycle.ends_at} reloadKey={state.reloadKey} onChanged={state.changed} empty="Nothing in this cycle yet." />
-          </PaperPage>
-        </View>
-        <View style={pageSize}>
-          <PaperPage title="Bills" subtitle="regular payments this cycle" footer={footer(3)}>
-            <BillsPage state={state} />
-          </PaperPage>
-        </View>
-      </ScrollView>
+      </GestureDetector>
     </View>
+  );
+}
+
+/**
+ * One leaf of the book. Pages are stacked with the first on top; a page swings
+ * about the spine on its left edge, showing its blank back once past upright,
+ * darkening as it bends away from the light and shading the page beneath.
+ */
+function TurningPage({ index, count, position, children }: { index: number; count: number; position: SharedValue<number>; children: ReactNode }) {
+  const leaf = useAnimatedStyle(() => {
+    const turned = Math.max(0, Math.min(1, position.value - index));
+    return {
+      display: turned >= 1 ? "none" : "flex",
+      transform: [{ perspective: 1800 }, { rotateY: `${-180 * turned}deg` }, { rotateZ: `${-1.5 * Math.sin(turned * Math.PI)}deg` }],
+    };
+  });
+  const front = useAnimatedStyle(() => ({ opacity: position.value - index < 0.5 ? 1 : 0 }));
+  const back = useAnimatedStyle(() => ({ opacity: position.value - index >= 0.5 ? 1 : 0 }));
+  const bend = useAnimatedStyle(() => {
+    const turned = Math.max(0, Math.min(1, position.value - index));
+    return { opacity: Math.sin(turned * Math.PI) * 0.4 };
+  });
+  // The page above casts a shadow here while it is in the air.
+  const shadow = useAnimatedStyle(() => {
+    const above = position.value - (index - 1);
+    return { opacity: above > 0 && above < 1 ? (1 - above) * 0.5 : 0 };
+  });
+
+  return (
+    <Animated.View style={[styles.leaf, { zIndex: count - index }, leaf]}>
+      <Animated.View style={[styles.face, front]}>
+        {children}
+        <Animated.View style={[styles.face, shadow]} pointerEvents="none">
+          <LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0)"]} start={{ x: 0, y: 0 }} end={{ x: 0.7, y: 0 }} style={styles.fill} />
+        </Animated.View>
+        <Animated.View style={[styles.face, bend]} pointerEvents="none">
+          <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fill} />
+        </Animated.View>
+      </Animated.View>
+      <Animated.View style={[styles.face, styles.back, back]} pointerEvents="none">
+        <LinearGradient colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.3)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.fill} />
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -201,7 +271,12 @@ function BillsPage({ state }: { state: CycleState }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: wood.back[1] },
-  book: { flex: 1, alignSelf: "center" },
+  book: { flex: 1, alignSelf: "center", backgroundColor: "#d9c9a0" },
+  leaf: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, transformOrigin: "left center" },
+  face: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  fill: { flex: 1 },
+  // The reverse of a page: blank paper, mirrored so it reads correctly from behind.
+  back: { backgroundColor: "#eadfc2", transform: [{ rotateY: "180deg" }] },
   footer: { flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: paper.rule },
   turn: { flex: 1, fontFamily: serif, fontSize: 13, fontStyle: "italic", color: paper.faint },
   turnRight: { textAlign: "right" },

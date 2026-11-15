@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 
-import { ShelfView, type ShelfBook } from "@/components/shelf-view";
+import { OpenBook } from "@/components/open-book";
+import { ShelfView, type BookRect, type ShelfBook } from "@/components/shelf-view";
 import { loadCycles, loadSummary } from "@/lib/cycles";
 import { syncTransactions } from "@/lib/monzo";
 
@@ -9,6 +10,7 @@ import { syncTransactions } from "@/lib/monzo";
 export function Shelf({ onSignOut }: { onSignOut: () => void }) {
   const [books, setBooks] = useState<ShelfBook[]>([]);
   const [status, setStatus] = useState("Syncing with Monzo…");
+  const [open, setOpen] = useState<{ book: ShelfBook; rect: BookRect } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -33,10 +35,11 @@ export function Shelf({ onSignOut }: { onSignOut: () => void }) {
   }, [load]);
 
   return (
-    <ShelfView
+    <>
+      <ShelfView
       books={books}
       status={status}
-      onOpen={(id) => router.push({ pathname: "/cycle/[id]", params: { id } })}
+      onOpen={(book, rect) => setOpen({ book, rect })}
       onEnvelopes={() => router.push("/envelopes")}
       onTransactions={() => router.push("/transactions")}
       onRefresh={() => {
@@ -44,6 +47,18 @@ export function Shelf({ onSignOut }: { onSignOut: () => void }) {
         load();
       }}
       onSignOut={onSignOut}
-    />
+      />
+      {open ? (
+        <OpenBook
+          key={open.book.id}
+          book={open.book}
+          rect={open.rect}
+          onClosed={() => {
+            setOpen(null);
+            load(); // what was done inside the book may have cleared its glow
+          }}
+        />
+      ) : null}
+    </>
   );
 }
