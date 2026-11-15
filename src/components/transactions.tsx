@@ -112,7 +112,7 @@ export function Transactions() {
         <FilePicker
           tx={{ id: picking.id, label: label(picking), amount: picking.amount }}
           envelopes={envelopes}
-          canRemember={Boolean(picking.payee) && !askPayees.has(picking.payee ?? "")}
+          canRemember={picking.amount < 0 && Boolean(picking.payee) && !askPayees.has(picking.payee ?? "")}
           onClose={(changed) => {
             setPicking(null);
             if (changed) load(false, onlyUnfiled);
