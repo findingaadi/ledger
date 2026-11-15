@@ -4,13 +4,14 @@ import { Platform } from "react-native";
 export const serif = Platform.select({ ios: "Georgia", android: "serif", default: "Georgia, 'Times New Roman', serif" });
 
 export const wood = {
-  light: "#e9c58c",
-  mid: "#c9995a",
-  dark: "#b98346",
-  edge: "#7a4f22",
-  ink: "#5a3610",
-  back: ["#d6a565", "#c48f4f"] as const,
-  plank: ["#f0cf97", "#d9ab6b", "#b57d3d"] as const,
+  bar: ["#7d5230", "#5e3a1c", "#4a2c13"] as const,
+  back: ["#6b4424", "#553418"] as const,
+  plank: ["#b07c43", "#86562a", "#5f3a19"] as const,
+  button: "#6a4424",
+  buttonPressed: "#4a2c13",
+  edge: "#2e1a0a",
+  /** Lettering on wood. */
+  ink: "#f1dfb4",
 };
 
 export const gold = { leaf: "#ecd084", glow: "rgba(255, 220, 120, 0.95)", ribbon: ["#ffe08a", "#e3a92c"] as const };
