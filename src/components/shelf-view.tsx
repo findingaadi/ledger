@@ -38,10 +38,10 @@ export function ShelfView({ books, status, onOpen, onEnvelopes, onTransactions, 
 
   return (
     <LinearGradient colors={wood.back} style={styles.screen}>
-      <Grain source={WOOD_UPRIGHT} opacity={0.9} />
+      <Grain source={WOOD_UPRIGHT} opacity={0.5} />
 
       <LinearGradient colors={wood.bar} style={[styles.bar, { paddingTop: insets.top + 8 }]}>
-        <Grain source={WOOD_ACROSS} opacity={0.75} />
+        <Grain source={WOOD_ACROSS} opacity={0.4} />
         <WoodButton label="Envelopes" onPress={onEnvelopes} />
         <Text style={styles.title}>Ledgers</Text>
         <WoodButton label="Transactions" onPress={onTransactions} />
@@ -63,7 +63,7 @@ export function ShelfView({ books, status, onOpen, onEnvelopes, onTransactions, 
                 })}
               </View>
               <LinearGradient colors={wood.plank} locations={[0, 0.22, 1]} style={styles.plank}>
-                <Grain source={WOOD_ACROSS} opacity={0.85} />
+                <Grain source={WOOD_ACROSS} opacity={0.5} />
                 <View style={styles.plankHighlight} />
                 <View style={styles.plankLip} />
               </LinearGradient>
@@ -122,6 +122,13 @@ function Book({ book, color, width, height, onPress }: { book: ShelfBook; color:
         <Grain source={LEATHER} opacity={1} />
         <LinearGradient colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0)", "rgba(0,0,0,0.35)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.grain} />
 
+        {/* Edges and corners rubbed pale, as on a well-handled book. */}
+        <LinearGradient colors={["rgba(255,236,200,0.22)", "rgba(255,236,200,0)"]} style={styles.wearTop} />
+        <LinearGradient colors={["rgba(255,236,200,0)", "rgba(255,236,200,0.20)"]} style={styles.wearBottom} />
+        <LinearGradient colors={["rgba(255,236,200,0)", "rgba(255,236,200,0.22)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.wearEdge} />
+        <View style={[styles.wearCorner, { top: -7, right: -7 }]} />
+        <View style={[styles.wearCorner, { bottom: -7, right: -7 }]} />
+
         <View style={styles.spine}>
           <View style={[styles.band, { top: "7%" }]} />
           <View style={[styles.band, { top: "10%" }]} />
@@ -161,7 +168,7 @@ function Stud({ style }: { style: object }) {
 }
 
 const fill = { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" } as const;
-const goldLine = "rgba(232,198,106,0.8)";
+const goldLine = "rgba(222,190,110,0.68)"; // slightly dulled, like old gilt
 
 const styles = StyleSheet.create({
   screen: { flex: 1, alignSelf: "stretch" },
@@ -187,6 +194,10 @@ const styles = StyleSheet.create({
     flex: 1, marginRight: 3, borderTopRightRadius: 4, borderBottomRightRadius: 4, borderTopLeftRadius: 2, borderBottomLeftRadius: 2,
     overflow: "hidden", boxShadow: "5px 4px 8px rgba(0,0,0,0.65)",
   },
+  wearTop: { position: "absolute", top: 0, left: 0, right: 0, height: 7 },
+  wearBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: 7 },
+  wearEdge: { position: "absolute", top: 0, bottom: 0, right: 0, width: 8 },
+  wearCorner: { position: "absolute", width: 20, height: 20, borderRadius: 10, backgroundColor: "rgba(255,236,200,0.28)" },
   spine: { position: "absolute", left: 0, top: 0, bottom: 0, width: 10, backgroundColor: "rgba(0,0,0,0.38)" },
   band: { position: "absolute", left: 0, right: 0, height: 2, backgroundColor: goldLine },
   hinge: { position: "absolute", left: 10, top: 0, bottom: 0, width: 3, backgroundColor: "rgba(255,255,255,0.10)", borderRightWidth: 1, borderRightColor: "rgba(0,0,0,0.35)" },
