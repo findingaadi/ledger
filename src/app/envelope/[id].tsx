@@ -1,8 +1,10 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { TransactionList } from "@/components/transaction-list";
+import { KEYBOARD_GAP } from "@/components/paper";
 import { gbp } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 
@@ -48,7 +50,7 @@ export default function EnvelopeDetail() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <KeyboardAwareScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" bottomOffset={KEYBOARD_GAP}>
       <Stack.Screen options={{ title: name }} />
       <Text style={styles.note}>
         {from ? "This pay cycle only. " : "Most recent first. "}Tap a transaction to move it to a different envelope.
@@ -84,7 +86,7 @@ export default function EnvelopeDetail() {
       ) : null}
 
       <TransactionList envelopeId={id} from={from || undefined} to={to || undefined} empty="No Monzo transactions filed here." />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
