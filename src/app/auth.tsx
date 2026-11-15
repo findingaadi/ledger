@@ -1,21 +1,23 @@
-import * as Linking from "expo-linking";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 
 import { completeLogin } from "@/lib/monzo";
 
 /** Where the browser lands after Monzo login. Finishes sign-in, then goes home. */
 export default function AuthReturn() {
-  const url = Linking.useURL();
+  // The phone app receives the sign-in values as route params; the web app reads them from the address bar.
+  const params = useLocalSearchParams<Record<string, string>>();
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!url) return;
+    const url = Platform.OS === "web" ? window.location.href : `ledger://auth?${new URLSearchParams(params)}`;
     completeLogin(url)
       .then(() => router.replace("/"))
       .catch((e: Error) => setError(e.message));
-  }, [url]);
+    // Run once: the values are present on first render and must not be replayed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
