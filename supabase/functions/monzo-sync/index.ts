@@ -108,6 +108,8 @@ Deno.serve(async (req) => {
       await admin.rpc("seed_defaults", { p_user: user.id });
       const { error } = await admin.rpc("classify_transactions", { p_user: user.id });
       if (error) throw error;
+      const cycles = await admin.rpc("ensure_cycles", { p_user: user.id });
+      if (cycles.error) throw cycles.error;
     }
     return json({ done, saved, skipped });
   } catch (e) {

@@ -1,9 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
-import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Transactions } from "@/components/transactions";
+import { Home } from "@/components/home";
 import { getStatus, startLogin, type MonzoStatus } from "@/lib/monzo";
 import { supabase } from "@/lib/supabase";
 
@@ -71,10 +70,7 @@ export default function Index() {
     body = (
       <>
         <Text>Connected to Monzo</Text>
-        <Link href="/envelopes" style={styles.link}>
-          Envelopes
-        </Link>
-        <Transactions />
+        <Home />
       </>
     );
   }
@@ -93,7 +89,7 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24, paddingTop: 64 },
+  container: { flex: 1, alignItems: "center", gap: 12, padding: 24, paddingTop: 48 },
   title: { fontSize: 28, fontWeight: "bold" },
   center: { textAlign: "center" },
   button: { backgroundColor: "#14233c", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
