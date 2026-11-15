@@ -1,18 +1,22 @@
 import { LinearGradient } from "expo-linear-gradient";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { paper, serif } from "@/lib/theme";
+
+/** How far above the keyboard a focused field sits, leaving room to see what's under it. */
+export const KEYBOARD_GAP = 60;
 
 /** One ledger page: cream paper with a shaded gutter, a small-caps heading, and a footer for page turning. */
 export function PaperPage({ title, subtitle, footer, children }: { title: string; subtitle?: string; footer?: ReactNode; children: ReactNode }) {
   return (
     <View style={styles.page}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={KEYBOARD_GAP}>
         <Text style={styles.title}>{title.toUpperCase()}</Text>
         {subtitle ? <Text style={styles.subtitle}>~ {subtitle} ~</Text> : null}
         {children}
-      </ScrollView>
+      </KeyboardAwareScrollView>
       <LinearGradient colors={["rgba(0,0,0,0.18)", "rgba(0,0,0,0)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gutter} pointerEvents="none" />
       {footer}
     </View>

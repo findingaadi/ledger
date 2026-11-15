@@ -1,11 +1,13 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { paper, serif, wood } from "@/lib/theme";
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+    <KeyboardProvider>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: wood.bar[1] },
@@ -24,6 +26,7 @@ export default function RootLayout() {
       <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen name="preview" options={{ headerShown: false }} />
     </Stack>
+    </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

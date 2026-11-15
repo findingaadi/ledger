@@ -1,7 +1,9 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
+import { KEYBOARD_GAP } from "@/components/paper";
 import { gbp } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 
@@ -70,7 +72,7 @@ export default function Envelopes() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <KeyboardAwareScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" bottomOffset={KEYBOARD_GAP}>
       <Text style={styles.note}>
         Tap an envelope to see its transactions. Spent is the last 30 days.{unfiled ? ` ${unfiled} transactions need an envelope.` : ""}
       </Text>
@@ -138,7 +140,7 @@ export default function Envelopes() {
           <Text style={styles.link}>Add envelope</Text>
         </Pressable>
       )}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
