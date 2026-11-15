@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Home } from "@/components/home";
 import { getStatus, startLogin, type MonzoStatus } from "@/lib/monzo";
@@ -18,20 +18,28 @@ export default function Index() {
   }, []);
 
   // Once signed in, ask the server every few seconds until access is approved in the Monzo app.
+  // Approving means leaving Ledger for the Monzo app, where a request in flight can fail, so a
+  // failed check is retried, and coming back to Ledger checks straight away.
   useEffect(() => {
     if (!session) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     const check = async () => {
-      const s = await getStatus().catch(() => ({ error: "Couldn't reach the server" }) as MonzoStatus);
+      clearTimeout(timer);
+      const s = await getStatus().catch(() => null);
       if (stop) return;
-      setStatus(s);
-      if (s.connected && !s.approved && !s.error) timer = setTimeout(check, 3000);
+      if (s) setStatus(s);
+      if (!s || s.error) timer = setTimeout(check, 5000);
+      else if (s.connected && !s.approved) timer = setTimeout(check, 3000);
     };
     check();
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state === "active") check();
+    });
     return () => {
       stop = true;
       clearTimeout(timer);
+      appState.remove();
     };
   }, [session]);
 
