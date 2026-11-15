@@ -9,6 +9,7 @@ export default function RootLayout() {
       <Stack.Screen name="transactions" options={{ title: "All transactions" }} />
       <Stack.Screen name="cycle/[id]" options={{ title: "Pay cycle" }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
+      <Stack.Screen name="preview" options={{ headerShown: false }} />
     </Stack>
   );
 }
