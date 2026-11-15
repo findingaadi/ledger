@@ -27,6 +27,7 @@ export default function RootLayout() {
       <Stack.Screen name="transactions" options={{ title: "All transactions" }} />
       <Stack.Screen name="cycle/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="preview-book" options={{ headerShown: false }} />
+      <Stack.Screen name="preview-locker" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen name="preview" options={{ headerShown: false }} />
     </Stack>
