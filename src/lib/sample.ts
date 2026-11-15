@@ -22,5 +22,5 @@ export const sampleCycle: CycleState = {
     message: "",
     reloadKey: 0,
     setAmount: noop, toggleIncluded: noop, sendRest: noop, changed: noop,
-    save: async () => {}, removeSide: async () => {}, addSide: async () => true,
+    save: async () => {}, reset: async () => {}, removeSide: async () => {}, addSide: async () => true,
   };

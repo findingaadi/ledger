@@ -10,7 +10,7 @@ It runs on Android, iOS and the web from one codebase. It is built for one perso
 - **Sorts every transaction into an envelope.** Rules match a payee (your council, your energy supplier) or a Monzo category (groceries, eating out). Correct one and it remembers.
 - **Knows what isn't spending.** Pot transfers, transfers between your own accounts, declined payments and purchases on Monzo Flex are never counted. Flex and credit card repayments count as bills.
 - **Asks when only you can know.** Money received from a person might be income or a friend paying you back, so it always asks. So does any payee you use for more than one thing.
-- **Runs on pay cycles, not calendar months.** A cycle starts when your salary arrives. On payday you tick the envelopes you need this month and assign the money until nothing is left unassigned. Whatever you save for an envelope becomes its amount next payday.
+- **Runs on pay cycles, not calendar months.** A cycle starts at the beginning of the day your salary arrives. On payday you tick the envelopes you need this month and assign the money until nothing is left unassigned. Whatever you save for an envelope becomes its amount next payday. If it goes wrong, "Reset this month's budget" (after a confirmation) puts every envelope back to £0 so you can share the money out again.
 - **Shows who a bank transfer was with.** Transfers are listed by the person or company, with the payment reference underneath.
 - **Shows guilt-free money.** Overspending in any envelope comes out of your guilt-free amount. If a cycle still ends short, the shortfall comes off the top of the next payday.
 - **Handles what Monzo can't see.** Add side income by hand, or record a payment made from another bank against an envelope.
@@ -18,12 +18,13 @@ It runs on Android, iOS and the web from one codebase. It is built for one perso
 ## How it looks
 
 - **The locked cabinet.** Opening the app shows an antique cabinet: the doors close in, a brass lock drops into place and a "Login to Monzo" button rises. Once Monzo access is approved the key turns, the lock falls away and the doors swing open onto the shelf.
+- **Transactions on the shelf.** Every payment from the last six months, newest first, with a heading and net total for each day.
 - **The shelf.** One book per pay cycle, newest first. A book glows and carries a "To do" ribbon when money is unassigned or transactions need an envelope.
 - **Opening a book.** The cover lifts off the shelf, grows to fill the screen and swings open.
-- **Four pages.** Drag sideways and the page bends over like paper on a phone (a hinged turn in a browser), or tap the page names in the footer. "Back to shelf" is in every footer.
+- **Four pages.** Drag sideways and the page bends over like paper on a phone (a hinged turn in a browser), or tap the page names in the footer. "Shelf" at the top left closes the book.
   1. **To do:** money in, what is left to assign, an amount per envelope, and transactions that need an envelope.
   2. **Dashboard:** guilt-free left, and a meter for each envelope.
-  3. **Transactions:** everything in the cycle. Tap one to move it.
+  3. **Transactions:** everything in the cycle, oldest first from payday, under a heading for each day. Tap one to move it.
   4. **Bills:** each regular bill, paid or due.
 
 ## Architecture

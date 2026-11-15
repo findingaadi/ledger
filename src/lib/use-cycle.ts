@@ -27,6 +27,8 @@ export type CycleState = {
   toggleIncluded: (envelopeId: string) => void;
   sendRest: () => void;
   save: () => Promise<void>;
+  /** Clears this cycle's budget: every envelope back to £0 and all of the money unassigned. */
+  reset: () => Promise<void>;
   addSide: (label: string, pounds: string) => Promise<boolean>;
   removeSide: (entry: ManualIncome) => Promise<void>;
   changed: () => void;
@@ -120,6 +122,15 @@ export function useCycle(id: string): CycleState | null {
       if (error) return setMessage("Couldn't save. Try again.");
       setSaved(true);
       setMessage("Saved. These amounts are now the defaults for next payday.");
+      loadNumbers(cycle);
+    },
+    reset: async () => {
+      const { error } = await supabase.from("allocations").delete().eq("cycle_id", cycle.id);
+      if (error) return setMessage("Couldn't reset. Try again.");
+      setAmounts(Object.fromEntries(envelopes.map((e) => [e.id, "0"])));
+      setIncluded(Object.fromEntries(envelopes.map((e) => [e.id, true])));
+      setSaved(false);
+      setMessage("Reset. All of this month's money is unassigned again.");
       loadNumbers(cycle);
     },
     addSide: async (label, pounds) => {

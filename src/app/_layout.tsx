@@ -24,7 +24,7 @@ export default function RootLayout() {
       <Stack.Screen name="index" options={{ title: "Ledger", headerShown: false }} />
       <Stack.Screen name="envelopes" options={{ title: "Envelopes" }} />
       <Stack.Screen name="envelope/[id]" options={{ title: "Envelope" }} />
-      <Stack.Screen name="transactions" options={{ title: "All transactions" }} />
+      <Stack.Screen name="transactions" options={{ title: "Transactions" }} />
       <Stack.Screen name="cycle/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="preview-book" options={{ headerShown: false }} />
       <Stack.Screen name="preview-locker" options={{ headerShown: false }} />

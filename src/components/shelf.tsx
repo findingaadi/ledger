@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
 import { OpenBook } from "@/components/open-book";
 import { ShelfView, type BookRect, type ShelfBook } from "@/components/shelf-view";
@@ -49,6 +50,9 @@ export function Shelf({ onSignOut }: { onSignOut: () => void }) {
       onSignOut={onSignOut}
       />
       {open ? (
+        // On Android the shelf's top bar could draw over the open book, hiding the book's own
+        // Shelf button; this layer sits above everything on the shelf.
+        <View style={styles.bookLayer}>
         <OpenBook
           key={open.book.id}
           book={open.book}
@@ -58,7 +62,12 @@ export function Shelf({ onSignOut }: { onSignOut: () => void }) {
             load(); // what was done inside the book may have cleared its glow
           }}
         />
+        </View>
       ) : null}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  bookLayer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, elevation: 100 },
+});
