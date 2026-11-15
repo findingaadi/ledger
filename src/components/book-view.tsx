@@ -67,7 +67,9 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
       <Text style={styles.turn} onPress={() => go(index - 1)}>
         {index > 0 ? `‹ ${PAGES[index - 1]}` : ""}
       </Text>
-      <Text style={styles.folio}>{index + 1}</Text>
+      <Text style={styles.shelfLink} onPress={onClose} accessibilityRole="button">
+        Back to shelf
+      </Text>
       <Text style={[styles.turn, styles.turnRight]} onPress={() => go(index + 1)}>
         {index < last ? `${PAGES[index + 1]} ›` : ""}
       </Text>
@@ -92,7 +94,7 @@ export function BookView({ state, onClose }: { state: CycleState; onClose: () =>
 
   return (
     <View style={styles.screen}>
-      <WoodBar title={state.cycle.name} left={<WoodButton label="Shelf" onPress={onClose} />} />
+      <WoodBar title={state.cycle.name} left={<WoodButton label="‹ Shelf" onPress={onClose} />} />
       <GestureDetector gesture={drag}>
         <View style={[styles.book, { width: pageWidth }]} accessibilityLabel={`Page ${page + 1} of ${PAGES.length}: ${PAGES[page]}`}>
           <View style={styles.face} pointerEvents={turning ? "none" : "box-none"}>
@@ -298,7 +300,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: paper.rule },
   turn: { flex: 1, fontFamily: serif, fontSize: 13, fontStyle: "italic", color: paper.faint },
   turnRight: { textAlign: "right" },
-  folio: { fontFamily: serif, fontSize: 13, color: paper.faint },
+  shelfLink: { fontFamily: serif, fontSize: 13, fontWeight: "bold", color: paper.ink, textDecorationLine: "underline", paddingHorizontal: 8 },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   tick: { fontSize: 17, color: paper.ink },
   leftOut: { color: paper.faint, textDecorationLine: "line-through" },
