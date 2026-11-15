@@ -109,6 +109,8 @@ npx eas-cli build --platform android --profile preview
 
 The two `EXPO_PUBLIC_` values must exist as EAS environment variables for the `preview` environment, because `.env` is never uploaded.
 
+The APK is built for 64-bit ARM phones only (`arm64-v8a`, set in `eas.json`), which covers Android phones from roughly the last eight years. Building Skia for all four Android processor types runs the free build machine out of memory.
+
 ## Secrets
 
 - Real values live only in `.env` (gitignored), in Supabase function secrets, and in EAS environment variables.
