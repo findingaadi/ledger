@@ -6,10 +6,15 @@ Deno.serve(async (req) => {
   const q = new URL(req.url).searchParams;
   const { data: st } = await admin.from("oauth_states").delete().eq("state", q.get("state") ?? "").select().maybeSingle();
   if (!st || Date.now() - new Date(st.created_at).getTime() > 10 * 60_000) {
-    return new Response("This login link has expired. Go back to Ledger and try again.", { status: 400 });
+    // Also reached when Monzo's waiting page and the emailed link both land here: the first one signs in.
+    return new Response("This login has already been used or has expired. Go back to Ledger; if you aren't signed in, try again.", {
+      status: 400,
+    });
   }
+  // Web gets the values after "#" so they never reach a server log; app deep links need "?" to survive.
+  const separator = st.return_to.startsWith("http") ? "#" : "?";
   const back = (params: Record<string, string>) =>
-    Response.redirect(`${st.return_to}#${new URLSearchParams({ nonce: st.nonce, ...params })}`, 302);
+    Response.redirect(`${st.return_to}${separator}${new URLSearchParams({ nonce: st.nonce, ...params })}`, 302);
 
   try {
     const code = q.get("code");

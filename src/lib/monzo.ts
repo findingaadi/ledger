@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
@@ -16,11 +17,21 @@ export type MonzoStatus = {
   error?: string;
 };
 
+/**
+ * Where the browser should send the user after login. In Expo Go the app's own
+ * scheme (ledger://) isn't registered on the phone, so use the exp:// address
+ * of the dev server that Expo Go does handle.
+ */
+function appReturnUrl() {
+  const host = Constants.expoGoConfig ? Constants.expoConfig?.hostUri : null;
+  return host ? `exp://${host}/--/auth` : Linking.createURL("auth");
+}
+
 /** Sends the user to Monzo to log in. They come back through completeLogin. */
 export async function startLogin() {
   const nonce = Crypto.randomUUID();
   await AsyncStorage.setItem(NONCE_KEY, nonce);
-  const returnTo = Linking.createURL("auth");
+  const returnTo = appReturnUrl();
   const url = `${fn("monzo-start")}?${new URLSearchParams({ nonce, return_to: returnTo })}`;
   if (Platform.OS === "web") {
     window.location.assign(url);
@@ -32,7 +43,8 @@ export async function startLogin() {
 
 /** Turns the URL Monzo login returned to into a signed-in session. Safe to call twice. */
 export async function completeLogin(url: string) {
-  const params = new URLSearchParams(url.split("#")[1] ?? "");
+  // The web app gets its values after "#"; the phone app gets them after "?", which survives a deep link.
+  const params = new URLSearchParams(url.split("#")[1] ?? url.split("?")[1] ?? "");
   const expected = await AsyncStorage.getItem(NONCE_KEY);
   if (!expected || !params.get("nonce")) return;
   if (params.get("nonce") !== expected) throw new Error("This login didn't start on this device. Try again.");
