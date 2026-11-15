@@ -2,20 +2,25 @@ import { Link, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { loadCycles, type Cycle } from "@/lib/cycles";
+import { loadCycles, loadSummary, type Cycle } from "@/lib/cycles";
 import { day } from "@/lib/format";
 import { syncTransactions } from "@/lib/monzo";
 
 /** Signed-in home: syncs with Monzo, then lists pay cycles newest first. */
 export function Home() {
   const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [attention, setAttention] = useState(false);
   const [busy, setBusy] = useState("Syncing with Monzo…");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     try {
       await syncTransactions((n) => setBusy(`Syncing with Monzo… ${n} transactions`));
-      setCycles(await loadCycles());
+      const all = await loadCycles();
+      setCycles(all);
+      // The newest cycle needs attention when money is unassigned or transactions are unfiled: the book that will glow.
+      const newest = all[0] ? await loadSummary(all[0].id) : null;
+      setAttention(Boolean(newest && (newest.left_to_assign !== 0 || newest.unfiled > 0)));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -58,7 +63,7 @@ export function Home() {
               {day(c.starts_at)} to {c.ends_at ? day(c.ends_at) : "next payday"}
             </Text>
           </View>
-          {i === 0 ? <Text style={styles.current}>current</Text> : null}
+          {i === 0 ? <Text style={attention ? styles.attention : styles.current}>{attention ? "needs attention" : "current"}</Text> : null}
         </Pressable>
       ))}
     </ScrollView>
@@ -77,4 +82,5 @@ const styles = StyleSheet.create({
   name: { fontWeight: "600" },
   meta: { fontSize: 12, color: "#666" },
   current: { color: "#2f5d32", fontSize: 12 },
+  attention: { color: "#a15c00", fontSize: 12, fontWeight: "600" },
 });

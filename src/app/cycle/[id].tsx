@@ -1,9 +1,9 @@
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { TransactionList } from "@/components/transaction-list";
-import { loadCycles, type Cycle } from "@/lib/cycles";
+import { loadCycles, loadSummary, type Cycle, type CycleSummary } from "@/lib/cycles";
 import { day, gbp } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 
@@ -20,18 +20,16 @@ export default function CyclePage() {
   const [envelopes, setEnvelopes] = useState<Envelope[]>([]);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
-  const [detected, setDetected] = useState(0);
+  const [summary, setSummary] = useState<CycleSummary | null>(null);
   const [manual, setManual] = useState<ManualIncome[]>([]);
   const [side, setSide] = useState<{ label: string; amount: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [message, setMessage] = useState("");
 
-  // Income can change when a transaction is filed, so it reloads on its own without touching typed amounts.
+  // The numbers change when a transaction is filed, so they reload on their own without touching typed amounts.
   const loadIncome = useCallback(async (c: Cycle) => {
-    let txs = supabase.from("transactions").select("amount").eq("status", "income").gte("created", c.starts_at);
-    if (c.ends_at) txs = txs.lt("created", c.ends_at);
-    const [t, m] = await Promise.all([txs, supabase.from("manual_income").select("id,label,amount").eq("cycle_id", c.id)]);
-    setDetected((t.data ?? []).reduce((sum, r) => sum + r.amount, 0));
+    const [sum, m] = await Promise.all([loadSummary(c.id), supabase.from("manual_income").select("id,label,amount").eq("cycle_id", c.id)]);
+    setSummary(sum);
     setManual(m.data ?? []);
   }, []);
 
@@ -64,11 +62,13 @@ export default function CyclePage() {
     })();
   }, [id, loadIncome]);
 
-  if (!cycle) return <Text style={styles.loading}>Loading…</Text>;
+  if (!cycle || !summary) return <Text style={styles.loading}>Loading…</Text>;
 
-  const income = detected + manual.reduce((sum, m) => sum + m.amount, 0);
+  const income = summary.income;
+  const carried = summary.carried_in;
   const allocated = envelopes.reduce((sum, e) => sum + (toPence(amounts[e.id] ?? "") || 0), 0);
-  const left = income - allocated;
+  const left = income - carried - allocated;
+  const guiltFree = summary.guilt_free_left;
   const changed = () => {
     setReloadKey((k) => k + 1);
     loadIncome(cycle);
@@ -90,6 +90,7 @@ export default function CyclePage() {
     if (error) return setMessage("Couldn't save. Try again.");
     setSaved(true);
     setMessage("Saved. Every pound is assigned.");
+    loadIncome(cycle);
   };
 
   const addSide = async () => {
@@ -114,6 +115,42 @@ export default function CyclePage() {
         {day(cycle.starts_at)} to {cycle.ends_at ? day(cycle.ends_at) : "next payday"}
       </Text>
 
+      {summary.assigned && guiltFree !== null ? (
+        <>
+          <View style={[styles.banner, guiltFree >= 0 ? styles.ok : styles.over]}>
+            <Text>{summary.closed ? "Guilt-free at the end" : "Guilt-free left"}</Text>
+            <Text style={styles.big}>{gbp(guiltFree)}</Text>
+            <Text style={styles.meta}>
+              {summary.closed ? "includes money left unspent in flexible envelopes" : "after overspending in other envelopes"}
+            </Text>
+          </View>
+          {summary.envelopes.filter((e) => e.kind !== "guilt_free").map((e) => {
+            const remaining = e.allocated - e.spent;
+            return (
+              <Pressable
+                key={e.id}
+                style={styles.row}
+                onPress={() =>
+                  router.push({ pathname: "/envelope/[id]", params: { id: e.id, from: cycle.starts_at, to: cycle.ends_at ?? "" } })
+                }
+              >
+                <View style={styles.grow}>
+                  <Text>{e.name}</Text>
+                  <Text style={styles.meta}>
+                    {gbp(e.spent)} spent of {gbp(e.allocated)}
+                  </Text>
+                </View>
+                <Text style={remaining < 0 ? styles.error : undefined}>
+                  {remaining < 0 ? `${gbp(-remaining)} over` : `${gbp(remaining)} left`}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </>
+      ) : (
+        <Text style={styles.meta}>Assign this cycle&apos;s money below to see what is left in each envelope.</Text>
+      )}
+
       <Text style={styles.heading}>Money in</Text>
       <TransactionList status="income" from={cycle.starts_at} to={cycle.ends_at} reloadKey={reloadKey} onChanged={changed} empty="No income found in this cycle." />
       {manual.map((m) => (
@@ -125,6 +162,12 @@ export default function CyclePage() {
           </Pressable>
         </View>
       ))}
+      {carried > 0 ? (
+        <View style={styles.row}>
+          <Text style={styles.grow}>Shortfall carried from last cycle</Text>
+          <Text style={styles.error}>{gbp(-carried, true)}</Text>
+        </View>
+      ) : null}
       {side ? (
         <View style={styles.form}>
           <TextInput style={styles.input} placeholder="Weekend shift" value={side.label} onChangeText={(label) => setSide({ ...side, label })} />
@@ -147,7 +190,7 @@ export default function CyclePage() {
       <View style={[styles.banner, left === 0 ? styles.ok : left > 0 ? styles.todo : styles.over]}>
         <Text>{left < 0 ? "Over-assigned" : "Left to assign"}</Text>
         <Text style={styles.big}>{gbp(Math.abs(left))}</Text>
-        <Text style={styles.meta}>of {gbp(income)} in</Text>
+        <Text style={styles.meta}>of {gbp(income - carried)} available</Text>
       </View>
       {!saved ? <Text style={styles.meta}>Not saved yet. Amounts are filled in from your last cycle or each envelope&apos;s default.</Text> : null}
 
