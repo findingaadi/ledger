@@ -1,4 +1,4 @@
-# Kharcha (खर्चा)
+# Kharcha (खर्च)
 
 Kharcha is a personal budgeting app for people who bank with Monzo. Every pay cycle is a leather-bound book on a wooden shelf. When your salary lands, you give every pound a job by assigning it to an envelope; after that, Kharcha reads your Monzo transactions and tells you what is left in each envelope and how much fun money you have left.
 
@@ -17,7 +17,7 @@ It runs on Android, iOS and the web from one codebase. It is built for one perso
 
 ## How it looks
 
-- **The icon.** Notes and coins raining down, with खर्चा in gold along the bottom.
+- **The icon.** Notes and coins raining down, with खर्च in gold along the bottom.
 - **The locked cabinet.** Opening the app shows an antique cabinet: the doors close in, a brass lock drops into place and a "Login to Monzo" button rises. Once Monzo access is approved the key turns, the lock falls away and the doors swing open onto the shelf.
 - **Transactions on the shelf.** Every payment from the last six months, newest first, with a heading and net total for each day.
 - **The shelf.** One book per pay cycle, newest first. A book glows and carries a "To do" ribbon when money is unassigned or transactions need an envelope.

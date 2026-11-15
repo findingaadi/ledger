@@ -1,6 +1,6 @@
 """Draws the app icon, Android adaptive icon layers, splash image and favicon.
 
-Money raining down on dark walnut, with the app's name, खर्चा (Kharcha),
+Money raining down on dark walnut, with the app's name, खर्च (Kharcha),
 written in gold Devanagari along the bottom. Needs rsvg-convert
 (brew install librsvg) and a Devanagari font (macOS ships several).
 Run: python3 scripts/make-icons.py
@@ -8,7 +8,7 @@ Run: python3 scripts/make-icons.py
 import os, random, subprocess, tempfile
 
 OUT = "assets/images"
-NAME = "खर्चा"
+NAME = "खर्च"
 FONT = "ITF Devanagari Marathi"
 GOLD = "#f2d27a"
 
