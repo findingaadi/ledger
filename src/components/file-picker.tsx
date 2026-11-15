@@ -10,7 +10,7 @@ export type EnvelopeOption = { id: string; name: string };
 type Props = {
   tx: Filable;
   envelopes: EnvelopeOption[];
-  /** False for payees that must always ask, such as a money-transfer service used for several purposes. */
+  /** False for money coming in, and for payees that must always ask. */
   canRemember: boolean;
   onClose: (changed: boolean) => void;
 };
@@ -39,6 +39,11 @@ export function FilePicker({ tx, envelopes, canRemember, onClose }: Props) {
             {tx.label} · {gbp(tx.amount, true)}
           </Text>
           <ScrollView contentContainerStyle={styles.options}>
+            {tx.amount > 0 ? (
+              <Pressable style={[styles.option, styles.other]} onPress={() => file("income")}>
+                <Text>Income</Text>
+              </Pressable>
+            ) : null}
             {envelopes.map((e) => (
               <Pressable key={e.id} style={styles.option} onPress={() => file("envelope", e.id)}>
                 <Text>{e.name}</Text>
@@ -47,11 +52,6 @@ export function FilePicker({ tx, envelopes, canRemember, onClose }: Props) {
             <Pressable style={[styles.option, styles.other]} onPress={() => file("neutral")}>
               <Text>Not spending</Text>
             </Pressable>
-            {tx.amount > 0 ? (
-              <Pressable style={[styles.option, styles.other]} onPress={() => file("income")}>
-                <Text>Income</Text>
-              </Pressable>
-            ) : null}
           </ScrollView>
           {canRemember ? (
             <Pressable style={styles.remember} onPress={() => setRemember(!remember)}>
@@ -59,7 +59,11 @@ export function FilePicker({ tx, envelopes, canRemember, onClose }: Props) {
               <Text style={styles.grow}>Always file {tx.label} this way</Text>
             </Pressable>
           ) : (
-            <Text style={styles.note}>{tx.label} is used for more than one thing, so it asks every time.</Text>
+            <Text style={styles.note}>
+              {tx.amount > 0
+                ? "Money in asks every time. Pick Income, or the envelope it pays back."
+                : `${tx.label} is used for more than one thing, so it asks every time.`}
+            </Text>
           )}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Pressable onPress={() => onClose(false)}>
