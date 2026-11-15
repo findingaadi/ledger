@@ -14,6 +14,8 @@ export type CycleState = {
   envelopes: CycleEnvelope[];
   /** What is typed against each envelope, in pounds, before saving. */
   amounts: Record<string, string>;
+  /** Which envelopes are in this cycle. Left-out envelopes get nothing. */
+  included: Record<string, boolean>;
   saved: boolean;
   manual: ManualIncome[];
   /** Money available to assign, less what is typed in. */
@@ -22,6 +24,7 @@ export type CycleState = {
   /** Bumped whenever a transaction is filed, so lists reload. */
   reloadKey: number;
   setAmount: (envelopeId: string, pounds: string) => void;
+  toggleIncluded: (envelopeId: string) => void;
   sendRest: () => void;
   save: () => Promise<void>;
   addSide: (label: string, pounds: string) => Promise<boolean>;
@@ -37,6 +40,7 @@ export function useCycle(id: string): CycleState | null {
   const [summary, setSummary] = useState<CycleSummary | null>(null);
   const [envelopes, setEnvelopes] = useState<CycleEnvelope[]>([]);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [included, setIncluded] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
   const [manual, setManual] = useState<ManualIncome[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
@@ -56,21 +60,26 @@ export function useCycle(id: string): CycleState | null {
       if (index < 0) return;
       const c = cycles[index];
       const previous = cycles[index + 1];
+      type Saved = { envelope_id: string; amount: number; included: boolean };
       const [env, mine, last] = await Promise.all([
         supabase.from("envelopes").select("id,name,kind,default_amount").order("sort").order("name"),
-        supabase.from("allocations").select("envelope_id,amount").eq("cycle_id", c.id),
+        supabase.from("allocations").select("envelope_id,amount,included").eq("cycle_id", c.id),
         previous
-          ? supabase.from("allocations").select("envelope_id,amount").eq("cycle_id", previous.id)
-          : Promise.resolve({ data: [] as { envelope_id: string; amount: number }[] }),
+          ? supabase.from("allocations").select("envelope_id,amount,included").eq("cycle_id", previous.id)
+          : Promise.resolve({ data: [] as Saved[] }),
       ]);
-      const byEnvelope = (rows: { envelope_id: string; amount: number }[] | null) =>
-        Object.fromEntries((rows ?? []).map((r) => [r.envelope_id, r.amount]));
+      const byEnvelope = (rows: Saved[] | null) => new Map((rows ?? []).map((r) => [r.envelope_id, r]));
       const own = byEnvelope(mine.data);
       const before = byEnvelope(last.data);
-      const hasOwn = (mine.data ?? []).length > 0;
-      // Saved amounts win; otherwise start from last cycle's, then the envelope's default.
-      setAmounts(Object.fromEntries((env.data ?? []).map((e) =>
-        [e.id, toPounds(hasOwn ? (own[e.id] ?? 0) : (before[e.id] ?? e.default_amount))])));
+      const hasOwn = own.size > 0;
+      // A saved cycle shows what was saved. A new one starts from each envelope's default
+      // amount (the last amount saved for it) and last cycle's choice of envelopes.
+      setIncluded(Object.fromEntries((env.data ?? []).map((e) =>
+        [e.id, hasOwn ? (own.get(e.id)?.included ?? true) : (before.get(e.id)?.included ?? true)])));
+      setAmounts(Object.fromEntries((env.data ?? []).map((e) => {
+        const saved = own.get(e.id);
+        return [e.id, toPounds(hasOwn ? (saved?.included === false ? e.default_amount : (saved?.amount ?? 0)) : e.default_amount)];
+      })));
       setEnvelopes(env.data ?? []);
       setSaved(hasOwn);
       setCycle(c);
@@ -80,30 +89,37 @@ export function useCycle(id: string): CycleState | null {
 
   if (!cycle || !summary) return null;
 
-  const allocated = envelopes.reduce((sum, e) => sum + (toPence(amounts[e.id] ?? "") || 0), 0);
+  const allocated = envelopes.reduce((sum, e) => sum + (included[e.id] === false ? 0 : toPence(amounts[e.id] ?? "") || 0), 0);
   const left = summary.income - summary.carried_in - allocated;
 
   return {
-    cycle, summary, envelopes, amounts, saved, manual, left, message, reloadKey,
+    cycle, summary, envelopes, amounts, included, saved, manual, left, message, reloadKey,
     setAmount: (envelopeId, pounds) => {
       setAmounts({ ...amounts, [envelopeId]: pounds });
+      setMessage("");
+    },
+    toggleIncluded: (envelopeId) => {
+      setIncluded({ ...included, [envelopeId]: included[envelopeId] === false });
       setMessage("");
     },
     sendRest: () => {
       const guiltFree = envelopes.find((e) => e.kind === "guilt_free");
       if (!guiltFree || left <= 0) return;
-      setAmounts({ ...amounts, [guiltFree.id]: toPounds(toPence(amounts[guiltFree.id] ?? "") + left) });
+      const current = included[guiltFree.id] === false ? 0 : toPence(amounts[guiltFree.id] ?? "");
+      setIncluded({ ...included, [guiltFree.id]: true });
+      setAmounts({ ...amounts, [guiltFree.id]: toPounds(current + left) });
       setMessage("");
     },
     save: async () => {
-      const rows = envelopes.map((e) => ({ cycle_id: cycle.id, envelope_id: e.id, amount: toPence(amounts[e.id] ?? "") }));
-      if (rows.some((r) => !Number.isFinite(r.amount) || r.amount < 0)) return setMessage("Amounts must be numbers like 150 or 23.50.");
+      const rows = envelopes.map((e) => ({ envelope_id: e.id, amount: toPence(amounts[e.id] ?? ""), included: included[e.id] !== false }));
+      if (rows.some((r) => r.included && (!Number.isFinite(r.amount) || r.amount < 0))) return setMessage("Amounts must be numbers like 150 or 23.50.");
       if (left > 0) return setMessage(`Assign the remaining ${gbp(left)} first.`);
       if (left < 0) return setMessage(`You've assigned ${gbp(-left)} more than came in.`);
-      const { error } = await supabase.from("allocations").upsert(rows, { onConflict: "cycle_id,envelope_id" });
+      // Left-out envelopes keep their typed amount so it isn't lost, but save as zero.
+      const { error } = await supabase.rpc("save_allocations", { p_cycle: cycle.id, p_rows: rows.map((r) => ({ ...r, amount: Number.isFinite(r.amount) ? r.amount : 0 })) });
       if (error) return setMessage("Couldn't save. Try again.");
       setSaved(true);
-      setMessage("Saved. Every pound is assigned.");
+      setMessage("Saved. These amounts are now the defaults for next payday.");
       loadNumbers(cycle);
     },
     addSide: async (label, pounds) => {

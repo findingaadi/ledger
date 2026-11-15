@@ -190,9 +190,27 @@ function TodoPage({ state }: { state: CycleState }) {
       />
       {!state.saved ? <Ink tone="faint" small>Not saved yet. Amounts are filled in from your last cycle or each envelope&apos;s usual amount.</Ink> : null}
 
-      {state.envelopes.map((e) => (
-        <Line key={e.id} label={e.name} right={<PaperInput keyboardType="decimal-pad" value={state.amounts[e.id] ?? ""} onChangeText={(v) => state.setAmount(e.id, v)} />} />
-      ))}
+      <Ink tone="faint" small>Tick the envelopes in this month. What you save becomes each envelope&apos;s amount next payday.</Ink>
+      {state.envelopes.map((e) => {
+        const on = state.included[e.id] !== false;
+        return (
+          <Line
+            key={e.id}
+            label={
+              <Text style={on ? undefined : styles.leftOut} onPress={() => state.toggleIncluded(e.id)}>
+                <Text style={styles.tick}>{on ? "☑" : "☐"}</Text> {e.name}
+              </Text>
+            }
+            right={
+              on ? (
+                <PaperInput keyboardType="decimal-pad" value={state.amounts[e.id] ?? ""} onChangeText={(v) => state.setAmount(e.id, v)} />
+              ) : (
+                <Ink tone="faint" small>not this month</Ink>
+              )
+            }
+          />
+        );
+      })}
       <PaperButton label="Send the rest to guilt-free" onPress={state.sendRest} />
       <PaperButton label="Save" primary onPress={state.save} />
       {state.message ? <Ink tone={state.message.startsWith("Saved") ? "green" : "red"} small>{state.message}</Ink> : null}
@@ -225,7 +243,7 @@ function DashboardPage({ state }: { state: CycleState }) {
         note={summary.closed ? "with what was left in flexible envelopes" : "after overspending elsewhere"}
         tone={guiltFree >= 0 ? "green" : "red"}
       />
-      {summary.envelopes.filter((e) => e.kind !== "guilt_free").map((e) => {
+      {summary.envelopes.filter((e) => e.kind !== "guilt_free" && (e.included || e.spent !== 0)).map((e) => {
         const remaining = e.allocated - e.spent;
         const used = e.allocated > 0 ? Math.min(1, Math.max(0, e.spent / e.allocated)) : e.spent > 0 ? 1 : 0;
         return (
@@ -250,7 +268,7 @@ function DashboardPage({ state }: { state: CycleState }) {
 
 function BillsPage({ state }: { state: CycleState }) {
   const { cycle, summary } = state;
-  const bills = summary.envelopes.filter((e) => e.kind === "bill");
+  const bills = summary.envelopes.filter((e) => e.kind === "bill" && (e.included || e.spent !== 0));
   if (!bills.length) return <Ink tone="faint">No regular bills set up. Mark an envelope as a regular bill to see it here.</Ink>;
   return (
     <>
@@ -282,6 +300,8 @@ const styles = StyleSheet.create({
   turnRight: { textAlign: "right" },
   folio: { fontFamily: serif, fontSize: 13, color: paper.faint },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  tick: { fontSize: 17, color: paper.ink },
+  leftOut: { color: paper.faint, textDecorationLine: "line-through" },
   meter: { height: 5, width: 150, marginTop: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: paper.faint, borderRadius: 3, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.4)" },
   meterFill: { height: "100%" },
 });
