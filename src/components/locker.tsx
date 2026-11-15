@@ -129,7 +129,7 @@ export function Locker({ phase, message, error, onLogin, onSignOut, onUnlocked }
       <Animated.View style={[styles.titleWrap, { top: insets.top + height * 0.1 }, title]} pointerEvents="none">
         <LinearGradient colors={brass} style={styles.nameplate}>
           <Text style={styles.nameplateTitle}>KHARCHA</Text>
-          <Text style={styles.nameplateSub}>खर्चा · Adi&apos;s money tracker</Text>
+          <Text style={styles.nameplateSub}>खर्च · Adi&apos;s money tracker</Text>
           <Animated.View style={[styles.shine, shine]} />
         </LinearGradient>
       </Animated.View>
