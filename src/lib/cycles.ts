@@ -27,7 +27,7 @@ export type CycleSummary = {
   left_to_assign: number;
   guilt_free_left: number | null;
   unfiled: number;
-  envelopes: { id: string; name: string; kind: string; allocated: number; spent: number }[];
+  envelopes: { id: string; name: string; kind: string; allocated: number; spent: number; included: boolean }[];
 };
 
 /** The budgeting numbers for one cycle, worked out by the database. */
