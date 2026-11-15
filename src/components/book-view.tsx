@@ -76,6 +76,7 @@ function TodoPage({ state }: { state: CycleState }) {
   const { cycle, summary, left } = state;
   const [side, setSide] = useState<{ label: string; amount: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const available = summary.income - summary.carried_in;
 
   return (
@@ -112,28 +113,29 @@ function TodoPage({ state }: { state: CycleState }) {
       />
       {!state.saved ? <Ink tone="faint" small>Not saved yet. Amounts are filled in from your last cycle or each envelope&apos;s usual amount.</Ink> : null}
 
-      <Ink tone="faint" small>Tick the envelopes in this month. What you save becomes each envelope&apos;s amount next payday.</Ink>
-      {state.envelopes.map((e) => {
-        const on = state.included[e.id] !== false;
-        return (
-          <Line
-            key={e.id}
-            label={
-              <Text style={on ? undefined : styles.leftOut} onPress={() => state.toggleIncluded(e.id)}>
-                <Text style={styles.tick}>{on ? "☑" : "☐"}</Text> {e.name}
-              </Text>
-            }
-            right={
-              on ? (
-                <PaperInput keyboardType="decimal-pad" value={state.amounts[e.id] ?? ""} onChangeText={(v) => state.setAmount(e.id, v)} />
-              ) : (
-                <Ink tone="faint" small>not this month</Ink>
-              )
-            }
-          />
-        );
-      })}
-      <PaperButton label="Send the rest to guilt-free" onPress={state.sendRest} />
+      {choosing ? (
+        <View style={styles.chooser}>
+          <Ink small>Tick the envelopes you need this month.</Ink>
+          {state.envelopes.map((e) => (
+            <Line
+              key={e.id}
+              label={<Text><Text style={styles.tick}>{state.included[e.id] !== false ? "☑" : "☐"}</Text> {e.name}</Text>}
+              onPress={() => state.toggleIncluded(e.id)}
+            />
+          ))}
+          <PaperButton label="Done" onPress={() => setChoosing(false)} />
+        </View>
+      ) : (
+        <PaperLink
+          label={`Choose this month's envelopes (${state.envelopes.filter((e) => state.included[e.id] !== false).length} of ${state.envelopes.length})`}
+          onPress={() => setChoosing(true)}
+        />
+      )}
+      <Ink tone="faint" small>What you save becomes each envelope&apos;s amount next payday.</Ink>
+      {state.envelopes.filter((e) => state.included[e.id] !== false).map((e) => (
+        <Line key={e.id} label={e.name} right={<PaperInput keyboardType="decimal-pad" value={state.amounts[e.id] ?? ""} onChangeText={(v) => state.setAmount(e.id, v)} />} />
+      ))}
+      <PaperButton label="Send the rest to fun money" onPress={state.sendRest} />
       <PaperButton label="Save" primary onPress={state.save} />
       {state.message ? <Ink tone={/^(Saved|Reset)/.test(state.message) ? "green" : "red"} small>{state.message}</Ink> : null}
 
@@ -183,7 +185,7 @@ function DashboardPage({ state }: { state: CycleState }) {
   return (
     <>
       <Stamp
-        label={summary.closed ? "Guilt-free at the end" : "Guilt-free left"}
+        label={summary.closed ? "Fun money at the end" : "Fun money left"}
         value={gbp(guiltFree)}
         note={summary.closed ? "with what was left in flexible envelopes" : "after overspending elsewhere"}
         tone={guiltFree >= 0 ? "green" : "red"}
@@ -241,8 +243,8 @@ const styles = StyleSheet.create({
   folio: { fontFamily: serif, fontSize: 13, color: paper.faint },
   actions: { flexDirection: "row", alignItems: "center", gap: 16 },
   tick: { fontSize: 17, color: paper.ink },
+  chooser: { gap: 2, padding: 10, borderWidth: 1, borderColor: paper.faint, borderRadius: 6, backgroundColor: "rgba(255,255,255,0.35)" },
   confirm: { gap: 6, marginTop: 10, padding: 12, borderWidth: 1.5, borderColor: paper.red, borderRadius: 6, backgroundColor: "rgba(161,42,34,0.06)" },
-  leftOut: { color: paper.faint, textDecorationLine: "line-through" },
   meter: { height: 5, width: 150, marginTop: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: paper.faint, borderRadius: 3, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.4)" },
   meterFill: { height: "100%" },
 });

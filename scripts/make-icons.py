@@ -1,82 +1,95 @@
 """Draws the app icon, Android adaptive icon layers, splash image and favicon.
 
-A leather-bound ledger titled "Adi Money Tracker" on dark walnut, matching the
-books on the shelf. Needs rsvg-convert (brew install librsvg).
+Money raining down on dark walnut, with the app's name, खर्चा (Kharcha),
+written in gold Devanagari along the bottom. Needs rsvg-convert
+(brew install librsvg) and a Devanagari font (macOS ships several).
 Run: python3 scripts/make-icons.py
 """
-import os, subprocess, tempfile
+import os, random, subprocess, tempfile
 
 OUT = "assets/images"
-GOLD = "#ecd084"
-LEATHER = "#6b1f1f"
+NAME = "खर्चा"
+FONT = "ITF Devanagari Marathi"
+GOLD = "#f2d27a"
 
-DEFS = f"""
+DEFS = """
 <defs>
-  <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#6b4424"/><stop offset="1" stop-color="#3f2611"/>
-  </linearGradient>
-  <filter id="woodgrain" x="0" y="0" width="100%" height="100%">
+  <radialGradient id="bg" cx="0.5" cy="0.35" r="0.8">
+    <stop offset="0" stop-color="#5c3a1d"/><stop offset="1" stop-color="#1f1208"/>
+  </radialGradient>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
     <feTurbulence type="fractalNoise" baseFrequency="0.004 0.09" numOctaves="3" seed="4"/>
     <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 0.9"/>
   </filter>
-  <filter id="leathergrain" x="0" y="0" width="100%" height="100%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="2" seed="9"/>
-    <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.9 0.62"/>
-  </filter>
-  <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#fff" stop-opacity="0.16"/>
-    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
-    <stop offset="1" stop-color="#000" stop-opacity="0.3"/>
+  <linearGradient id="note" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#d7ecc0"/><stop offset="1" stop-color="#9cc47e"/>
   </linearGradient>
-  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-    <feDropShadow dx="14" dy="18" stdDeviation="18" flood-color="#000" flood-opacity="0.6"/>
+  <radialGradient id="coin" cx="0.35" cy="0.3" r="0.8">
+    <stop offset="0" stop-color="#fff0b0"/><stop offset="0.55" stop-color="#e9b93c"/><stop offset="1" stop-color="#9a6b12"/>
+  </radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff0b8"/><stop offset="0.5" stop-color="#f2c75c"/><stop offset="1" stop-color="#b9862a"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="6" dy="10" stdDeviation="8" flood-color="#000" flood-opacity="0.55"/>
   </filter>
 </defs>"""
 
 
-def wood(size):
-    return f'<rect width="{size}" height="{size}" fill="url(#wood)"/><rect width="{size}" height="{size}" filter="url(#woodgrain)" opacity="0.55"/>'
+def background(size):
+    return f'<rect width="{size}" height="{size}" fill="url(#bg)"/><rect width="{size}" height="{size}" filter="url(#grain)" opacity="0.35"/>'
 
 
-def book(x, y, w, h, mono=False):
-    """A ledger standing upright: page block, leather cover, spine, gold tooling and title."""
-    s = w / 430  # everything below is drawn for a 430-wide book and scaled
-    gold = "#000" if mono else GOLD
-    t = lambda size, text, dy, weight="bold", spacing=0, style="normal": (
-        f'<text x="{x + w * 0.56}" y="{y + dy * s}" font-family="Georgia" font-size="{size * s}" font-weight="{weight}" '
-        f'font-style="{style}" letter-spacing="{spacing * s}" text-anchor="middle" fill="{gold}">{text}</text>')
-    frame_x, frame_w = x + 62 * s, w - 92 * s
-    parts = []
-    if mono:
-        # Monochrome: a solid silhouette with the title and frame cut out.
-        parts.append(f'<g><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{14 * s}" fill="#fff"/>')
-    else:
-        parts += [
-            f'<g filter="url(#shadow)">',
-            f'<rect x="{x + w - 30 * s}" y="{y + 12 * s}" width="{34 * s}" height="{h - 22 * s}" rx="{8 * s}" fill="#efe3c4" stroke="#bfae86" stroke-width="{3 * s}"/>',
-            f'<rect x="{x}" y="{y}" width="{w - 14 * s}" height="{h}" rx="{14 * s}" fill="{LEATHER}"/>',
-            f'<rect x="{x}" y="{y}" width="{w - 14 * s}" height="{h}" rx="{14 * s}" filter="url(#leathergrain)"/>',
-            f'<rect x="{x}" y="{y}" width="{w - 14 * s}" height="{h}" rx="{14 * s}" fill="url(#sheen)"/>',
-            f'<rect x="{x}" y="{y}" width="{40 * s}" height="{h}" rx="{10 * s}" fill="#000" opacity="0.32"/>',
-        ]
-        for by in (0.07, 0.1, 0.9, 0.93):
-            parts.append(f'<rect x="{x}" y="{y + h * by}" width="{40 * s}" height="{6 * s}" fill="{GOLD}" opacity="0.85"/>')
-    parts += [
-        f'<rect x="{frame_x}" y="{y + 30 * s}" width="{frame_w}" height="{h - 60 * s}" fill="none" stroke="{gold}" stroke-width="{7 * s}"/>',
-        f'<rect x="{frame_x + 16 * s}" y="{y + 46 * s}" width="{frame_w - 32 * s}" height="{h - 92 * s}" fill="none" stroke="{gold}" stroke-width="{3 * s}"/>',
-        t(112, "Adi", 250, spacing=2),
-        f'<line x1="{x + w * 0.56 - 90 * s}" y1="{y + 292 * s}" x2="{x + w * 0.56 + 90 * s}" y2="{y + 292 * s}" stroke="{gold}" stroke-width="{4 * s}"/>',
-        t(60, "Money", 372),
-        t(60, "Tracker", 440),
-        f'<g transform="translate({x + w * 0.56} {y + 520 * s}) rotate(45)"><rect x="{-15 * s}" y="{-15 * s}" width="{30 * s}" height="{30 * s}" fill="{gold}"/></g>',
-        '</g>',
-    ]
-    return "".join(parts)
+def note(x, y, scale, angle, mono):
+    w, h = 190 * scale, 100 * scale
+    fill, ink = ("#fff", "#000") if mono else ("url(#note)", "#3f6b2c")
+    streak = "" if mono else (f'<line x1="{-w * 0.3}" y1="{-h * 0.9}" x2="{-w * 0.3}" y2="{-h * 1.9}" stroke="#fff" stroke-opacity="0.18" stroke-width="{4 * scale}" stroke-linecap="round"/>'
+                              f'<line x1="{w * 0.25}" y1="{-h * 0.8}" x2="{w * 0.25}" y2="{-h * 1.6}" stroke="#fff" stroke-opacity="0.12" stroke-width="{4 * scale}" stroke-linecap="round"/>')
+    return (f'<g transform="translate({x} {y}) rotate({angle})" {"" if mono else "filter=\"url(#shadow)\""}>{streak}'
+            f'<rect x="{-w / 2}" y="{-h / 2}" width="{w}" height="{h}" rx="{8 * scale}" fill="{fill}" stroke="{ink}" stroke-width="{4 * scale}"/>'
+            f'<rect x="{-w / 2 + 12 * scale}" y="{-h / 2 + 12 * scale}" width="{w - 24 * scale}" height="{h - 24 * scale}" rx="{5 * scale}" fill="none" stroke="{ink}" stroke-width="{2 * scale}" opacity="{1 if mono else 0.6}"/>'
+            f'<ellipse cx="0" cy="0" rx="{30 * scale}" ry="{30 * scale}" fill="none" stroke="{ink}" stroke-width="{3 * scale}"/>'
+            f'<text x="0" y="{13 * scale}" font-family="Georgia" font-weight="bold" font-size="{38 * scale}" text-anchor="middle" fill="{ink}">£</text></g>')
 
 
-def svg(size, body, background=None):
-    bg = background or ""
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">{DEFS}{bg}{body}</svg>'
+def coin(x, y, scale, angle, mono):
+    r = 48 * scale
+    fill, ink = ("#fff", "#000") if mono else ("url(#coin)", "#7a5208")
+    streak = "" if mono else f'<line x1="0" y1="{-r * 1.3}" x2="0" y2="{-r * 2.6}" stroke="#fff" stroke-opacity="0.16" stroke-width="{4 * scale}" stroke-linecap="round"/>'
+    return (f'<g transform="translate({x} {y}) rotate({angle}) scale(1 {0.82 if not mono else 1})" {"" if mono else "filter=\"url(#shadow)\""}>{streak}'
+            f'<circle r="{r}" fill="{fill}" stroke="{ink}" stroke-width="{4 * scale}"/>'
+            f'<circle r="{r * 0.72}" fill="none" stroke="{ink}" stroke-width="{2.5 * scale}" opacity="{1 if mono else 0.7}"/>'
+            f'<text x="0" y="{16 * scale}" font-family="Georgia" font-weight="bold" font-size="{46 * scale}" text-anchor="middle" fill="{ink}">£</text></g>')
+
+
+def rain(mono=False):
+    """Notes and coins tumbling down the top two-thirds, placed the same way every run."""
+    rnd = random.Random(11)
+    items = []
+    spots = [(170, 150), (430, 110), (720, 150), (900, 300), (110, 380), (330, 330), (600, 300), (790, 470),
+             (250, 560), (520, 520), (890, 840), (700, 640), (880, 640), (410, 680)]
+    for i, (x, y) in enumerate(spots):
+        x += rnd.uniform(-18, 18)
+        y += rnd.uniform(-18, 18)
+        angle = rnd.uniform(-38, 38)
+        scale = rnd.uniform(0.75, 1.05)
+        items.append(note(x, y, scale, angle, mono) if i % 2 == 0 else coin(x, y, scale * 0.95, angle, mono))
+    return "".join(items)
+
+
+def title(mono=False, y=905, size=230):
+    fill = "#000" if mono else "url(#gold)"
+    stroke = "" if mono else 'stroke="#5a3a0c" stroke-width="5" paint-order="stroke"'
+    return (f'<text x="512" y="{y}" font-family="{FONT}" font-weight="bold" font-size="{size}" text-anchor="middle" '
+            f'fill="{fill}" {stroke} {"" if mono else "filter=\"url(#shadow)\""}>{NAME}</text>')
+
+
+def art(mono=False):
+    return rain(mono) + title(mono)
+
+
+def svg(size, body):
+    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 1024 1024">{DEFS}{body}</svg>'
 
 
 def render(name, markup, size):
@@ -86,15 +99,19 @@ def render(name, markup, size):
     os.unlink(f.name)
 
 
+def inset(body, scale):
+    """Shrink artwork about the centre, for launchers that crop the edges."""
+    offset = 512 * (1 - scale)
+    return f'<g transform="translate({offset} {offset}) scale({scale})">{body}</g>'
+
+
 if __name__ == "__main__":
-    # Full icon: book on wood, filling most of the square.
-    full = svg(1024, book(272, 132, 480, 760), wood(1024))
-    render("icon.png", full, 1024)
-    render("favicon.png", full, 48)
-    # Android adaptive icon: the launcher crops to a circle or squircle, so keep the book inside the middle 60%.
-    render("android-icon-background.png", svg(1024, "", wood(1024)), 1024)
-    render("android-icon-foreground.png", svg(1024, book(346, 230, 340, 538)), 1024)
-    render("android-icon-monochrome.png", svg(1024, book(346, 230, 340, 538, mono=True)), 1024)
-    # Splash: the book alone, drawn over a dark wood colour set in app.json.
-    render("splash-icon.png", svg(1024, book(272, 132, 480, 760)), 1024)
+    full = background(1024) + art()
+    render("icon.png", svg(1024, full), 1024)
+    render("favicon.png", svg(1024, background(1024) + title(size=300, y=650)), 48)
+    # Android adaptive icon: the launcher crops to a circle or squircle, so the artwork sits in the middle 62%.
+    render("android-icon-background.png", svg(1024, background(1024)), 1024)
+    render("android-icon-foreground.png", svg(1024, inset(art(), 0.62)), 1024)
+    render("android-icon-monochrome.png", svg(1024, inset(art(mono=True), 0.62)), 1024)
+    render("splash-icon.png", svg(1024, art()), 1024)
     print("icons written")

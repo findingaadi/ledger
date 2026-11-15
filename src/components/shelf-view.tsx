@@ -40,7 +40,7 @@ export function ShelfView({ books, status, onOpen, onEnvelopes, onTransactions, 
     <LinearGradient colors={wood.back} style={styles.screen}>
       <Grain source={WOOD_UPRIGHT} opacity={0.5} />
 
-      <WoodBar title="Ledgers" left={<WoodButton label="Envelopes" onPress={onEnvelopes} />} right={<WoodButton label="Transactions" onPress={onTransactions} />} />
+      <WoodBar title="Kharcha" left={<WoodButton label="Envelopes" onPress={onEnvelopes} />} right={<WoodButton label="Transactions" onPress={onTransactions} />} />
 
       <View style={styles.strip}>
         <Text style={styles.stripStatus} numberOfLines={1}>

@@ -128,8 +128,8 @@ export function Locker({ phase, message, error, onLogin, onSignOut, onUnlocked }
 
       <Animated.View style={[styles.titleWrap, { top: insets.top + height * 0.1 }, title]} pointerEvents="none">
         <LinearGradient colors={brass} style={styles.nameplate}>
-          <Text style={styles.nameplateTitle}>LEDGER</Text>
-          <Text style={styles.nameplateSub}>Adi Money Tracker</Text>
+          <Text style={styles.nameplateTitle}>KHARCHA</Text>
+          <Text style={styles.nameplateSub}>खर्चा · Adi&apos;s money tracker</Text>
           <Animated.View style={[styles.shine, shine]} />
         </LinearGradient>
       </Animated.View>
@@ -156,7 +156,7 @@ export function Locker({ phase, message, error, onLogin, onSignOut, onUnlocked }
         {phase === "waiting" ? (
           <View style={styles.label}>
             <ActivityIndicator color={wood.ink} />
-            <Text style={styles.labelText}>{message ?? "Open your Monzo app and approve access for Ledger."}</Text>
+            <Text style={styles.labelText}>{message ?? "Open your Monzo app and approve the access request."}</Text>
           </View>
         ) : (
           <Pressable onPress={onLogin} disabled={phase !== "login"} style={({ pressed }) => [styles.buttonOuter, pressed && styles.pressed]} accessibilityRole="button">

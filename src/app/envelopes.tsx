@@ -13,7 +13,7 @@ const KINDS: { kind: Kind; label: string }[] = [
   { kind: "bill", label: "Regular bill" },
   { kind: "flexible", label: "Flexible" },
   { kind: "variable", label: "Variable" },
-  { kind: "guilt_free", label: "Guilt-free" },
+  { kind: "guilt_free", label: "Fun money" },
 ];
 const kindLabel = (k: Kind) => KINDS.find((x) => x.kind === k)!.label;
 const DAY = 86_400_000;

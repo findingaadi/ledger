@@ -15,10 +15,7 @@ export type BookPagesProps = {
   render: (index: number, go: (to: number) => void) => ReactNode;
 };
 
-/**
- * The book's pages for the web: stacked leaves that swing about the spine.
- * Phones use book-pages.native.tsx, which bends the paper instead.
- */
+/** The book's pages: stacked leaves that swing about the spine as you drag or tap the footer links. */
 export function BookPages({ count, first, width, names, render }: BookPagesProps) {
   const [page, setPage] = useState(first);
   // How far through the book we are: 1 is page two lying flat, 1.4 is page two 40% of the way over.
