@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { gbp } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 
-export type Filable = { id: string; label: string; amount: number };
+export type Filable = { id: string; label: string; reference?: string | null; amount: number };
 export type EnvelopeOption = { id: string; name: string };
 
 type Props = {
@@ -38,6 +38,7 @@ export function FilePicker({ tx, envelopes, canRemember, onClose }: Props) {
           <Text style={styles.title}>
             {tx.label} · {gbp(tx.amount, true)}
           </Text>
+          {tx.reference ? <Text style={styles.note}>Ref: {tx.reference}</Text> : null}
           <ScrollView contentContainerStyle={styles.options}>
             {tx.amount > 0 ? (
               <Pressable style={[styles.option, styles.other]} onPress={() => file("income")}>
