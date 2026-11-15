@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -70,26 +71,28 @@ export default function Envelopes() {
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
-      <Text style={styles.note}>Spent is the last 30 days. {unfiled ? `${unfiled} transactions need an envelope.` : ""}</Text>
+      <Text style={styles.note}>
+        Tap an envelope to see its transactions. Spent is the last 30 days.{unfiled ? ` ${unfiled} transactions need an envelope.` : ""}
+      </Text>
 
       {envelopes.map((e) => (
-        <Pressable
-          key={e.id}
-          style={styles.row}
-          onPress={() => {
-            setError("");
-            setDraft({ id: e.id, name: e.name, kind: e.kind, amount: String(e.default_amount / 100) });
-          }}
-        >
-          <View style={styles.grow}>
+        <View key={e.id} style={styles.row}>
+          <Pressable style={styles.grow} onPress={() => router.push({ pathname: "/envelope/[id]", params: { id: e.id } })}>
             <Text style={styles.name}>{e.name}</Text>
             <Text style={styles.meta}>
               {kindLabel(e.kind)}
-              {e.default_amount ? ` · ${gbp(e.default_amount)} each payday` : ""}
+              {e.default_amount ? ` · ${gbp(e.default_amount)} each payday` : ""} · {gbp(spent[e.id] ?? 0)} spent
             </Text>
-          </View>
-          <Text>{gbp(spent[e.id] ?? 0)} spent</Text>
-        </Pressable>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setError("");
+              setDraft({ id: e.id, name: e.name, kind: e.kind, amount: String(e.default_amount / 100) });
+            }}
+          >
+            <Text style={styles.edit}>Edit</Text>
+          </Pressable>
+        </View>
       ))}
 
       {draft ? (
@@ -156,5 +159,6 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#14233c", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "600" },
   link: { color: "#185fa5", marginTop: 12 },
+  edit: { color: "#185fa5", paddingLeft: 16 },
   error: { color: "#a12a22" },
 });
