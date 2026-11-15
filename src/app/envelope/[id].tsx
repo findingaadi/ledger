@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase";
 
 /** One envelope's transactions. Tap any of them to move it somewhere else. */
 export default function EnvelopeDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // from/to are set when arriving from a pay cycle, to show only that cycle's transactions.
+  const { id, from, to } = useLocalSearchParams<{ id: string; from?: string; to?: string }>();
   const [name, setName] = useState("Envelope");
 
   useEffect(() => {
@@ -17,8 +18,10 @@ export default function EnvelopeDetail() {
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Stack.Screen options={{ title: name }} />
-      <Text style={styles.note}>Most recent first. Tap a transaction to move it to a different envelope.</Text>
-      <TransactionList envelopeId={id} empty="Nothing has been filed here yet." />
+      <Text style={styles.note}>
+        {from ? "This pay cycle only. " : "Most recent first. "}Tap a transaction to move it to a different envelope.
+      </Text>
+      <TransactionList envelopeId={id} from={from || undefined} to={to || undefined} empty="Nothing has been filed here yet." />
     </ScrollView>
   );
 }

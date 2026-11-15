@@ -18,3 +18,20 @@ export async function loadCycles(): Promise<Cycle[]> {
     name: cycleName(c.starts_at),
   }));
 }
+
+export type CycleSummary = {
+  closed: boolean;
+  assigned: boolean;
+  income: number;
+  carried_in: number;
+  left_to_assign: number;
+  guilt_free_left: number | null;
+  unfiled: number;
+  envelopes: { id: string; name: string; kind: string; allocated: number; spent: number }[];
+};
+
+/** The budgeting numbers for one cycle, worked out by the database. */
+export async function loadSummary(cycleId: string): Promise<CycleSummary | null> {
+  const { data } = await supabase.rpc("cycle_summary", { p_cycle: cycleId });
+  return data as CycleSummary | null;
+}
